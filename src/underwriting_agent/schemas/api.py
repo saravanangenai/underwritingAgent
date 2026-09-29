@@ -27,3 +27,24 @@ class SubmissionStatus(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+
+
+class SubmissionSummary(BaseModel):
+    """One row of the underwriter queue. Decision fields are None until a decision exists."""
+
+    submission_id: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    property_address: str | None = None
+    action: str | None = None
+    confidence: float | None = None
+    flags: list[str] = []  # caution and hard-stop rule ids, rules and LLM alike
+    assessed_by: str | None = None
+
+
+class SubmissionPage(BaseModel):
+    items: list[SubmissionSummary]
+    total: int
+    limit: int
+    offset: int

@@ -2,7 +2,7 @@ import uuid
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +15,7 @@ from underwriting_agent.schemas import (
     AuditVerification,
     DecisionLogEntry,
     NeedsMoreInfoResponse,
+    SubmissionPage,
     SubmissionStatus,
     UnderwriteResponse,
 )
@@ -97,6 +98,22 @@ async def underwrite(
         risk_memo=result.risk_memo,
         enrichment=result.enrichment,
     )
+
+
+SUBMISSION_STATUSES = ("running", "completed", "referred", "declined", "needs_more_info", "failed")
+
+
+@router.get("/submissions", response_model=SubmissionPage)
+async def list_submissions(
+    status: str | None = Query(None, description=f"One of: {', '.join(SUBMISSION_STATUSES)}"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_session),
+):
+    """Submissions newest first, each with its latest decision summarised (the queue view)."""
+    if status is not None and status not in SUBMISSION_STATUSES:
+        raise HTTPException(status_code=422, detail=f"Unknown status {status!r}")
+    return await repo.list_submissions(session, status=status, limit=limit, offset=offset)
 
 
 @router.get("/submissions/{submission_id}", response_model=SubmissionStatus)

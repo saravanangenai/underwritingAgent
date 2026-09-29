@@ -28,6 +28,37 @@ A Postman collection with every sample, the lookups and the error cases (each wi
 assertions) is in `postman/underwriting-agent.postman_collection.json`. Import it and run
 the folders in order.
 
+## Underwriter workbench (Phase 7)
+
+A Vue 3 + Vite + TypeScript app in `frontend/` for the people who act on referrals. Start the
+API as above, then in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev          # http://localhost:5173
+```
+
+- **Queue** (`/`): submissions newest first, filterable by status (the filter and page are in
+  the URL), with address, status, non-info flags, confidence and which model assessed each.
+- **Submission** (`/submissions/:id`): the decision and rationale; every flag with its
+  severity, whether a rule or the LLM raised it and the field it cites; the LLM memo and
+  recommendation; rejected LLM flags; FEMA hazard data with top perils; and the audit record
+  (model and rules versions, prompt versions, hash chain).
+- **New submission** (`/new`): a structured form or pasted ACORD text. Missing fields come back
+  as a list; a decided submission opens its detail page.
+- **Audit banner**: every page checks `/audit/verify` and turns red if the chain is broken.
+
+The workbench reads `GET /submissions` (added in this phase: `status`, `limit` up to 200 and
+`offset`). Point it at another API with `VITE_API_URL` in `frontend/.env.local`; the API must
+list the workbench's origin in `CORS_ORIGINS`. The toolchain is pinned to versions that run on
+Node 18 (Vite 5, Vitest 2); on Node 20.19+ it can move to Vite 8.
+
+```bash
+npm test             # component and API-client tests (the API is mocked)
+npm run build        # type-check with vue-tsc, then a production build in dist/
+```
+
 ## Pipeline
 
 ```
@@ -233,6 +264,7 @@ HZ-001 cutoff of 70. The other synthetic addresses do not geocode, so they also 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | POST | `/underwrite` | Run the pipeline, return decision, risk memo and enrichment |
+| GET | `/submissions` | Queue: newest first, `status` filter, `limit`/`offset` paging |
 | GET | `/submissions/{id}` | Stored submission and current status |
 | GET | `/submissions/{id}/decision` | Audit record for the decision |
 | GET | `/audit/verify` | Recompute the decision log's hash chain |
@@ -241,7 +273,7 @@ HZ-001 cutoff of 70. The other synthetic addresses do not geocode, so they also 
 ## Develop
 
 ```bash
-uv run pytest        # 121 tests; fakes only, never calls an LLM, the geocoder or Apify
+uv run pytest        # 124 tests; fakes only, never calls an LLM, the geocoder or Apify
 uv run ruff check .  # lint
 uv run ruff format . # format
 ```
@@ -256,6 +288,7 @@ src/underwriting_agent/
   llm/            provider client (OpenAI-compatible) and ordered fallback
   tools/          hazard_apify (live FEMA NRI via Apify MCP) and mocked data sources
   graph/          builder.py (LangGraph StateGraph), orchestrator.py runs it
+frontend/         Vue 3 underwriter workbench (see above)
   schemas/        Pydantic models shared across agents and the API
   persistence/    SQLAlchemy async models and repository (SQLite)
   samples/        synthetic submissions
@@ -282,9 +315,7 @@ src/underwriting_agent/
 3. Phase 3: LangGraph `StateGraph` with `Send` fan-out; live Apify hazard MCP
 4. Phase 4: LLM risk assessment and triage with citations, guardrails and an eval set
 5. Phase 5: hash-chained, replayable decision log; CI; larger eval set with consistency runs
-6. Phase 6 (this): provider comparison with latency, tokens, pacing and availability
-7. Vue underwriter workbench (Vue 3 + Vite + TypeScript in `frontend/`; CORS for
-   `localhost:5173`, Vite's dev port, is already enabled): a submission queue, a detail view
-   with the decision, cited flags, LLM memo, hazard data and audit record, a new-submission
-   form that accepts raw ACORD text, and an audit-chain status banner. Needs a
-   `GET /submissions` list endpoint first.
+6. Phase 6: provider comparison with latency, tokens, pacing and availability
+7. Phase 7 (this): Vue underwriter workbench (Vue 3 + Vite + TypeScript in `frontend/`): queue,
+   submission detail with cited flags and audit record, new-submission form, audit banner;
+   `GET /submissions` list endpoint

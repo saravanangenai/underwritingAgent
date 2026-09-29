@@ -4,7 +4,7 @@ import json
 import weakref
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from underwriting_agent.persistence.db import DecisionLogRow, SubmissionRow
@@ -12,6 +12,8 @@ from underwriting_agent.schemas import (
     AuditVerification,
     DecisionLogEntry,
     RiskMemo,
+    SubmissionPage,
+    SubmissionSummary,
     TriageDecision,
 )
 from underwriting_agent.utils import utcnow
@@ -58,6 +60,59 @@ async def set_status(session: AsyncSession, submission_id: str, status: str) -> 
         row.status = status
         row.updated_at = utcnow()
         await session.commit()
+
+
+async def list_submissions(
+    session: AsyncSession, status: str | None = None, limit: int = 50, offset: int = 0
+) -> SubmissionPage:
+    """Newest first, with each submission's latest decision summarised for the queue."""
+    query = select(SubmissionRow)
+    count = select(func.count()).select_from(SubmissionRow)
+    if status:
+        query = query.where(SubmissionRow.status == status)
+        count = count.where(SubmissionRow.status == status)
+    total = (await session.execute(count)).scalar_one()
+    rows = (
+        (
+            await session.execute(
+                query.order_by(SubmissionRow.created_at.desc(), SubmissionRow.id)
+                .limit(limit)
+                .offset(offset)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    latest: dict[str, DecisionLogRow] = {}
+    if rows:
+        decisions = await session.execute(
+            select(DecisionLogRow)
+            .where(DecisionLogRow.submission_id.in_([r.id for r in rows]))
+            .order_by(DecisionLogRow.id)
+        )
+        for decision in decisions.scalars():
+            latest[decision.submission_id] = decision  # later ids overwrite earlier ones
+
+    items = []
+    for row in rows:
+        summary = SubmissionSummary(
+            submission_id=row.id,
+            status=row.status,
+            created_at=row.created_at,
+            updated_at=row.updated_at,
+        )
+        decision = latest.get(row.id)
+        if decision is not None:
+            memo = RiskMemo.model_validate_json(decision.risk_memo_json)
+            inputs = json.loads(decision.inputs_json)
+            summary.property_address = inputs.get("submission", {}).get("property_address")
+            summary.action = decision.action
+            summary.confidence = decision.confidence
+            summary.flags = [f.rule_id for f in memo.flags if f.severity != "info"]
+            summary.assessed_by = memo.assessed_by
+        items.append(summary)
+    return SubmissionPage(items=items, total=total, limit=limit, offset=offset)
 
 
 # --- decision log (hash chained) ---------------------------------------------------------
