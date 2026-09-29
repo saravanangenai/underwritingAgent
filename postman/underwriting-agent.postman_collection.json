@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Homeowners Underwriting Agent",
-    "description": "Requests for the local FastAPI service. Start it with\n`uv run uvicorn underwriting_agent.api.main:app --reload`, then run the folders in order. Each POST /underwrite saves its submission_id into the `submission_id` collection variable, which the Submissions folder uses.\n\nAll applicants and properties are synthetic.",
+    "description": "Requests for the local FastAPI service. Start it with\n`uv run uvicorn underwriting_agent.api.main:app --reload`, then run the folders in order. Each POST /underwrite saves its submission_id into the `submission_id` collection variable, which the Submissions folder uses.\n\nAll applicants and properties are synthetic.\n\nThe expected outcomes assume mock hazard data: set HAZARD_PROVIDER=mock in .env before starting the server. With live FEMA data (APIFY_TOKEN set), the Clean sample is referred (its real census tract scores above the HZ-001 cutoff), and the synthetic addresses that the Census geocoder cannot place get HZ-002 (hazard data unavailable).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -86,7 +86,7 @@
                 "underwrite"
               ]
             },
-            "description": "No caution or hard-stop flags, so it is auto-approved with a mock premium.",
+            "description": "No caution or hard-stop flags, so it is auto-approved with a mock premium. Assumes HAZARD_PROVIDER=mock.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"applicant\": {\n    \"first_name\": \"Sample\",\n    \"last_name\": \"Applicant\"\n  },\n  \"property\": {\n    \"address_line1\": \"22 Willow Creek Dr\",\n    \"city\": \"Rancho Santa Margarita\",\n    \"state\": \"CA\",\n    \"zip\": \"92688\",\n    \"year_built\": 2005,\n    \"square_feet\": 2450,\n    \"construction_type\": \"frame\",\n    \"roof_type\": \"tile\",\n    \"roof_year\": 2018,\n    \"has_pool\": false,\n    \"has_trampoline\": false\n  },\n  \"coverage\": {\n    \"coverage_a_limit\": 650000,\n    \"deductible\": 2500,\n    \"requested_effective_date\": \"2026-11-01\"\n  },\n  \"prior_insurance\": {\n    \"carrier\": \"Example Mutual\",\n    \"years_with_carrier\": 6,\n    \"claims_last_5_years\": 0\n  }\n}",

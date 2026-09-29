@@ -8,13 +8,14 @@ from underwriting_agent.config import Settings
 
 @pytest.fixture
 def settings(tmp_path):
-    # Ignore .env and any key env vars so tests never call a real LLM.
+    # Ignore .env and any key env vars so tests never call a real LLM or Apify.
     return Settings(
         _env_file=None,
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'test.db'}",
         groq_api_key=None,
         gemini_api_key=None,
         openai_api_key=None,
+        apify_token=None,
     )
 
 

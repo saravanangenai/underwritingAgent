@@ -6,14 +6,23 @@ reasons over the same inputs and must still cite a rule id and source field for 
 
 from underwriting_agent import rules
 from underwriting_agent.schemas import EnrichmentResult, RiskFlag, RiskMemo, Submission
-from underwriting_agent.tools import hazard_mock, loss_history_mock, property_data_mock
+from underwriting_agent.tools import (
+    hazard_apify,
+    hazard_mock,
+    loss_history_mock,
+    property_data_mock,
+)
 
 
 async def risk_assessment_agent(
     submission: Submission, enrichment: list[EnrichmentResult]
 ) -> RiskMemo:
     data = {r.source: r.data for r in enrichment}
-    hazard = data.get(hazard_mock.SOURCE, {})
+    # Live FEMA data when present, otherwise the mock. Flags cite whichever was used.
+    hazard_source = next(
+        (s for s in (hazard_apify.SOURCE, hazard_mock.SOURCE) if s in data), hazard_mock.SOURCE
+    )
+    hazard = data.get(hazard_source, {})
     losses = data.get(loss_history_mock.SOURCE, {})
     prop = data.get(property_data_mock.SOURCE, {})
 
@@ -72,13 +81,22 @@ async def risk_assessment_agent(
         )
 
     hazard_score = hazard.get("composite_score")
-    if hazard_score is not None and hazard_score >= rules.HAZARD_CAUTION_SCORE:
+    if hazard.get("status") == "unavailable":
+        flags.append(
+            RiskFlag(
+                rule_id="HZ-002",
+                issue=f"Hazard data unavailable ({hazard.get('error')}): review hazard manually",
+                severity="caution",
+                source_field=f"{hazard_source}.status",
+            )
+        )
+    elif hazard_score is not None and hazard_score >= rules.HAZARD_CAUTION_SCORE:
         flags.append(
             RiskFlag(
                 rule_id="HZ-001",
                 issue=f"High composite hazard score ({hazard_score})",
                 severity="caution",
-                source_field=f"{hazard_mock.SOURCE}.composite_score",
+                source_field=f"{hazard_source}.composite_score",
             )
         )
 
