@@ -140,6 +140,32 @@ Results on 2026-09-29 (LLM runs used Groq `openai/gpt-oss-120b`, with Gemini as 
 - The scorecard for these runs is in `eval-results/`. The labels are synthetic judgments;
   review them before relying on the scores, and add cases as you find disagreements.
 
+## Provider comparison (Phase 6)
+
+Run the same cases through each provider **alone** (no fallback) and compare accuracy, safety,
+speed and token use side by side:
+
+```bash
+uv run python -m underwriting_agent.evals --compare groq,gemini --pace 20 --save
+uv run python -m underwriting_agent.evals --provider gemini          # one provider only
+```
+
+- Every LLM reply now records `latency_seconds` (including retry waits), prompt and completion
+  tokens as reported by the provider, and the number of retries.
+- The summary adds `median_latency_s`, `p90_latency_s`, `avg_tokens` and `retries`, plus
+  `llm_answered`, `accuracy_answered` and `unsafe_answered`. A case the provider could not
+  answer (rate limit, outage) falls back to the rules and is marked `n/a`, so outages are
+  reported as availability, not scored as the provider's mistakes.
+- `--pace` waits between cases so free-tier rate limits do not skew the comparison. Groq's free
+  tier allows 8,000 tokens per minute and one review uses about 1,400-2,000, so use 20 seconds;
+  a full 38-case comparison of two providers then takes about 30 minutes.
+- Choose the winner with `LLM_PROVIDERS` in `.env`, fastest safe provider first.
+
+First measurement (2026-09-29, both free tiers nearly exhausted after a day of evaluations):
+Groq answered 1 of 4 cases in 2.0 s using 1,418 tokens; Gemini answered none (daily quota
+used up). Re-run the full comparison after the quotas reset (Groq requests hourly, Gemini
+daily at midnight Pacific).
+
 ## Audit log (Phase 5)
 
 Every decision is appended to `decision_log` with everything needed to replay and explain it:
@@ -215,7 +241,7 @@ HZ-001 cutoff of 70. The other synthetic addresses do not geocode, so they also 
 ## Develop
 
 ```bash
-uv run pytest        # 113 tests; fakes only, never calls an LLM, the geocoder or Apify
+uv run pytest        # 121 tests; fakes only, never calls an LLM, the geocoder or Apify
 uv run ruff check .  # lint
 uv run ruff format . # format
 ```
@@ -255,6 +281,6 @@ src/underwriting_agent/
 2. Phase 2: Groq/Gemini/OpenAI client with fallback; Intake reads raw ACORD text
 3. Phase 3: LangGraph `StateGraph` with `Send` fan-out; live Apify hazard MCP
 4. Phase 4: LLM risk assessment and triage with citations, guardrails and an eval set
-5. Phase 5 (this): hash-chained, replayable decision log; CI; larger eval set with consistency runs
-6. Provider comparison
+5. Phase 5: hash-chained, replayable decision log; CI; larger eval set with consistency runs
+6. Phase 6 (this): provider comparison with latency, tokens, pacing and availability
 7. React underwriter workbench (CORS for `localhost:5173` is already enabled)

@@ -34,7 +34,7 @@ def create_app(
 
     app = FastAPI(
         title="Homeowners Underwriting Agent",
-        version="0.5.0",
+        version="0.6.0",
         description=(
             "Phase 5: hash-chained, replayable audit log. Rules plus an LLM risk review with "
             "cited flags and guardrailed triage. "

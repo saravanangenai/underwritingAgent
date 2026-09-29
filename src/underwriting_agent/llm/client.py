@@ -7,6 +7,7 @@ provider is down, rate limited, or returns something that is not a JSON object.
 
 import asyncio
 import json
+import time
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -33,6 +34,10 @@ class LLMReply:
     data: dict[str, Any]
     provider: str
     model: str
+    latency_seconds: float | None = None  # wall time for the call, including retry waits
+    prompt_tokens: int | None = None  # as reported by the provider
+    completion_tokens: int | None = None
+    retries: int = 0
 
     @property
     def model_id(self) -> str:
@@ -101,6 +106,8 @@ class ProviderClient:
             "response_format": {"type": "json_object"},
         }
         headers = {"Authorization": f"Bearer {self._api_key}"}
+        started = time.perf_counter()
+        retries = 0
         try:
             async with httpx.AsyncClient(timeout=self._timeout, transport=self._transport) as c:
                 for attempt in range(self._max_retries + 1):
@@ -108,6 +115,7 @@ class ProviderClient:
                     if response.status_code not in RETRYABLE_STATUS:
                         break
                     if attempt < self._max_retries:
+                        retries += 1
                         wait = _retry_delay(response, attempt, self._retry_base, self._retry_cap)
                         log.info(
                             "llm_retry",
@@ -122,11 +130,21 @@ class ProviderClient:
         if response.status_code != 200:
             raise LLMError(f"{self.provider}: HTTP {response.status_code}")
         try:
-            content = response.json()["choices"][0]["message"]["content"]
+            body = response.json()
+            content = body["choices"][0]["message"]["content"]
             data = _parse_json_object(content)
         except (KeyError, IndexError, TypeError, ValueError) as exc:
             raise LLMError(f"{self.provider}: reply was not a JSON object") from exc
-        return LLMReply(data=data, provider=self.provider, model=self.model)
+        usage = body.get("usage") if isinstance(body.get("usage"), dict) else {}
+        return LLMReply(
+            data=data,
+            provider=self.provider,
+            model=self.model,
+            latency_seconds=round(time.perf_counter() - started, 3),
+            prompt_tokens=usage.get("prompt_tokens"),
+            completion_tokens=usage.get("completion_tokens"),
+            retries=retries,
+        )
 
 
 class FallbackLLM:
@@ -148,17 +166,22 @@ class FallbackLLM:
         raise LLMError("All LLM providers failed: " + "; ".join(errors))
 
 
+def build_provider(settings: Settings, provider: str) -> ProviderClient | None:
+    """One provider's client, or None when it has no key. Used alone for fair comparisons."""
+    if provider not in BASE_URLS:
+        raise ValueError(f"Unknown LLM provider {provider!r}; use one of {sorted(BASE_URLS)}")
+    key = getattr(settings, f"{provider}_api_key")
+    if key is None or not key.get_secret_value():
+        return None
+    model = getattr(settings, f"{provider}_model")
+    return ProviderClient(provider, key.get_secret_value(), model, settings.llm_timeout_seconds)
+
+
 def build_llm(settings: Settings) -> FallbackLLM | None:
     """A FallbackLLM over every provider in settings.llm_providers that has a key, or None."""
-    clients: list[LLM] = []
-    for provider in settings.llm_providers:
-        if provider not in BASE_URLS:
-            raise ValueError(f"Unknown LLM provider {provider!r}; use one of {sorted(BASE_URLS)}")
-        key = getattr(settings, f"{provider}_api_key")
-        if key is None or not key.get_secret_value():
-            continue
-        model = getattr(settings, f"{provider}_model")
-        clients.append(
-            ProviderClient(provider, key.get_secret_value(), model, settings.llm_timeout_seconds)
-        )
+    clients: list[LLM] = [
+        client
+        for provider in settings.llm_providers
+        if (client := build_provider(settings, provider)) is not None
+    ]
     return FallbackLLM(clients) if clients else None

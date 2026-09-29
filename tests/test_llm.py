@@ -148,3 +148,36 @@ def test_retry_delay_honours_retry_after_with_a_cap():
     assert _retry_delay(httpx.Response(429, headers={"retry-after": "3"}), 0, 2, 20) == 3
     assert _retry_delay(httpx.Response(429, headers={"retry-after": "999"}), 0, 2, 20) == 20
     assert _retry_delay(httpx.Response(429), 2, 2, 20) == 8  # 2 * 2**2
+
+
+async def test_reply_carries_latency_tokens_and_retries():
+    replies = iter(
+        [
+            httpx.Response(429),
+            httpx.Response(
+                200,
+                json={
+                    "choices": [{"message": {"content": '{"ok": true}'}}],
+                    "usage": {"prompt_tokens": 1200, "completion_tokens": 300},
+                },
+            ),
+        ]
+    )
+    reply = await _client(lambda r: next(replies)).complete_json("s", "u")
+    assert (reply.prompt_tokens, reply.completion_tokens, reply.retries) == (1200, 300, 1)
+    assert reply.latency_seconds is not None and reply.latency_seconds >= 0
+
+
+async def test_missing_usage_is_tolerated():
+    reply = await _client(lambda r: _chat_reply('{"ok": true}')).complete_json("s", "u")
+    assert reply.prompt_tokens is None and reply.completion_tokens is None
+
+
+def test_build_provider_returns_one_client_or_none():
+    from underwriting_agent.llm import build_provider
+
+    settings = Settings(_env_file=None, groq_api_key="g", gemini_api_key=None)
+    assert build_provider(settings, "groq").provider == "groq"
+    assert build_provider(settings, "gemini") is None
+    with pytest.raises(ValueError, match="Unknown LLM provider"):
+        build_provider(settings, "claude")
