@@ -4,7 +4,9 @@ A local FastAPI service that runs a five-agent underwriting pipeline as a LangGr
 `StateGraph`. Intake reads structured JSON or raw ACORD text (through an LLM with Groq,
 Gemini and OpenAI fallback). Enrichment fans out in parallel with `Send`, and the hazard
 lookup uses live FEMA National Risk Index data through the Apify MCP server. Risk assessment
-is still rule-based; loss history, property data and the premium are still mocked.
+runs deterministic rules, then an LLM review that can add cited flags and recommend a
+decision inside code-enforced guardrails. Loss history, property data and the premium are
+still mocked.
 
 ## Run it
 
@@ -60,6 +62,61 @@ With `APIFY_TOKEN` set, the hazard lookup:
 - **Privacy:** the property address goes to the Census geocoder and its coordinates to Apify.
 - Smoke test (one billed run): `uv run python -m underwriting_agent.tools.hazard_apify`
 
+## Risk assessment and triage (Phase 4)
+
+The deterministic rules always run first and their flags always stand. With an LLM
+configured (and `LLM_RISK_ASSESSMENT=true`, the default), the LLM then reviews the
+submission, the enrichment data and the rule flags, and returns a memo, extra flags, an
+overall risk score and a recommendation with a confidence.
+
+**Guardrails, enforced in code:**
+
+- The LLM may raise only the judgment rules in the catalog (`rules.CATALOG`, `UW-101` to
+  `UW-105`), and every flag must cite a `source_field` that exists in the input. Anything
+  else is dropped and listed in the memo's `rejected_flags`. Severity comes from the
+  catalog, not the LLM.
+- Hard stops are code only. The LLM can never decline, and can never approve past a hard
+  stop or a caution flag.
+- The LLM can approve only when no rule fired and its confidence is at least
+  `LLM_APPROVE_MIN_CONFIDENCE` (0.7); otherwise the submission is referred. A "decline"
+  recommendation becomes a referral. So the LLM can make a decision more cautious, never less,
+  which also bounds what a prompt injection in the data could achieve.
+- If the LLM fails or returns invalid JSON, the rules-only result is used and the memo says so.
+- The audit record's `model_version` names the risk model, e.g. `risk=groq/openai/gpt-oss-120b`.
+- LLM calls retry rate limits and overloads (429/5xx) with backoff, honouring `Retry-After`,
+  before falling back to the next provider.
+
+| Rule | Raised by | Meaning |
+| --- | --- | --- |
+| HS-001 | code | Roof older than 25 years (hard stop) |
+| SR-010 / SR-011 / SR-012 | code | Pool / 2+ claims / trampoline |
+| HZ-001 / HZ-002 | code | Composite hazard 70+ / hazard data unavailable |
+| UW-101 | LLM | Coverage A implausible for the property |
+| UW-102 | LLM | Effective date in the past or over 12 months out |
+| UW-103 | LLM | A single peril Very High though the composite is below the cutoff |
+| UW-104 | LLM | Within 1 mile of the coast |
+| UW-105 | LLM | Internally inconsistent data (roof older than house, future years) |
+
+## Evaluation set
+
+`src/underwriting_agent/evals/cases.json` holds 20 synthetic submissions labelled with the
+decision a careful underwriter would make: 14 the rules decide, and 6 "judgment" cases the
+rules cannot see. Hazard data is fixed per case, so no Apify calls are made.
+
+```bash
+uv run python -m underwriting_agent.evals          # rules only (free)
+uv run python -m underwriting_agent.evals --llm    # rules + LLM review (uses your LLM keys)
+```
+
+| Run | Accuracy | Judgment cases | Unsafe approvals |
+| --- | --- | --- | --- |
+| Rules only | 14/20 | 0/6 | 6 |
+| Rules + LLM (Groq `openai/gpt-oss-120b`, 2026-09-29) | 20/20 | 6/6 | 0 |
+
+"Unsafe approvals" counts cases approved that should have been referred or declined. The
+labels are synthetic judgments; review them before relying on the scores, and add cases as
+you find disagreements.
+
 ## LLM providers
 
 Intake sends `{"acord_text": "..."}` payloads to an LLM, which extracts the same nested
@@ -102,7 +159,7 @@ HZ-001 cutoff of 70. The other synthetic addresses do not geocode, so they also 
 ## Develop
 
 ```bash
-uv run pytest        # 68 tests; fakes only, never calls an LLM, the geocoder or Apify
+uv run pytest        # 94 tests; fakes only, never calls an LLM, the geocoder or Apify
 uv run ruff check .  # lint
 uv run ruff format . # format
 ```
@@ -112,7 +169,8 @@ uv run ruff format . # format
 ```
 src/underwriting_agent/
   api/            FastAPI app (main.py) and routes
-  agents/         intake, enrichment, risk_assessment, triage, compliance
+  agents/         intake, enrichment, risk_assessment (rules + LLM review), triage, compliance
+  evals/          labelled evaluation set and scorecard runner
   llm/            provider client (OpenAI-compatible) and ordered fallback
   tools/          hazard_apify (live FEMA NRI via Apify MCP) and mocked data sources
   graph/          builder.py (LangGraph StateGraph), orchestrator.py runs it
@@ -128,8 +186,8 @@ src/underwriting_agent/
 - **Hazard threshold:** HZ-001 refers scores of 70 or more. With live data that is roughly the
   riskiest 30% of US census tracts, which includes much of California. Tune
   `HAZARD_CAUTION_SCORE` in `rules.py` to your appetite.
-- **Risk assessment is a rule-based stub.** Phase 4 replaces it with an LLM that must still
-  cite a rule id and source field for every flag.
+- **LLM review is additive.** It adds cited judgment flags and recommendations on top of the
+  rules; the rules alone still decide every hard stop.
 - **Data:** use synthetic applicants only.
 - **Timestamps** are UTC.
 - **Database:** `underwriting.db` (SQLite) is created in the working directory on first run.
@@ -139,8 +197,8 @@ src/underwriting_agent/
 
 1. Phase 1: schemas, API, SQLite, stubbed agents
 2. Phase 2: Groq/Gemini/OpenAI client with fallback; Intake reads raw ACORD text
-3. Phase 3 (this): LangGraph `StateGraph` with `Send` fan-out; live Apify hazard MCP
-4. LLM risk assessment and triage with citations
+3. Phase 3: LangGraph `StateGraph` with `Send` fan-out; live Apify hazard MCP
+4. Phase 4 (this): LLM risk assessment and triage with citations, guardrails and an eval set
 5. Decision log hardening and an evaluation set
 6. Provider comparison
 7. React underwriter workbench (CORS for `localhost:5173` is already enabled)

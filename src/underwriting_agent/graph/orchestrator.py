@@ -13,8 +13,9 @@ async def run_pipeline(
     submission_id: str,
     llm: LLM | None = None,
     hazard: HazardProvider | None = None,
+    risk_llm: LLM | None = None,
 ) -> PipelineResult:
-    graph = build_graph(llm, hazard)
+    graph = build_graph(llm, hazard, risk_llm)
     state = await graph.ainvoke({"raw": raw, "submission_id": submission_id, "enrichment": []})
 
     decision = state.get("decision")

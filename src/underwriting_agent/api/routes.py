@@ -69,9 +69,8 @@ async def underwrite(
         ) from None
 
     try:
-        result = await run_pipeline(
-            raw, submission_id, request.app.state.llm, request.app.state.hazard
-        )
+        state = request.app.state
+        result = await run_pipeline(raw, submission_id, state.llm, state.hazard, state.risk_llm)
     except LLMError as exc:
         log.warning("llm_unavailable", submission_id=submission_id, error=str(exc))
         await repo.set_status(session, submission_id, "failed")

@@ -5,6 +5,7 @@ small httpx client covers all three. FallbackLLM tries them in order and moves o
 provider is down, rate limited, or returns something that is not a JSON object.
 """
 
+import asyncio
 import json
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -53,6 +54,19 @@ def _parse_json_object(content: str) -> dict[str, Any]:
     return data
 
 
+# Rate limited or temporarily overloaded: worth a short wait and another try.
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+
+def _retry_delay(response: httpx.Response, attempt: int, base: float, cap: float) -> float:
+    """Honour a numeric Retry-After header, else exponential backoff; never more than cap."""
+    try:
+        wait = float(response.headers.get("retry-after", ""))
+    except ValueError:
+        wait = base * 2**attempt
+    return max(0.0, min(wait, cap))
+
+
 class ProviderClient:
     """Calls one provider's OpenAI-compatible chat endpoint in JSON mode."""
 
@@ -63,6 +77,9 @@ class ProviderClient:
         model: str,
         timeout: float = 60.0,
         transport: httpx.AsyncBaseTransport | None = None,  # tests pass a MockTransport
+        max_retries: int = 2,
+        retry_base_seconds: float = 2.0,
+        retry_cap_seconds: float = 20.0,
     ):
         self.provider = provider
         self.model = model
@@ -70,6 +87,9 @@ class ProviderClient:
         self._api_key = api_key
         self._timeout = timeout
         self._transport = transport
+        self._max_retries = max_retries
+        self._retry_base = retry_base_seconds
+        self._retry_cap = retry_cap_seconds
 
     async def complete_json(self, system: str, user: str) -> LLMReply:
         payload = {
@@ -83,7 +103,19 @@ class ProviderClient:
         headers = {"Authorization": f"Bearer {self._api_key}"}
         try:
             async with httpx.AsyncClient(timeout=self._timeout, transport=self._transport) as c:
-                response = await c.post(self._url, json=payload, headers=headers)
+                for attempt in range(self._max_retries + 1):
+                    response = await c.post(self._url, json=payload, headers=headers)
+                    if response.status_code not in RETRYABLE_STATUS:
+                        break
+                    if attempt < self._max_retries:
+                        wait = _retry_delay(response, attempt, self._retry_base, self._retry_cap)
+                        log.info(
+                            "llm_retry",
+                            provider=self.provider,
+                            status=response.status_code,
+                            wait_seconds=wait,
+                        )
+                        await asyncio.sleep(wait)
         except httpx.HTTPError as exc:
             raise LLMError(f"{self.provider}: {type(exc).__name__}") from exc
 

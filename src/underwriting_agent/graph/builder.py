@@ -54,8 +54,16 @@ class LookupTask(TypedDict):
     submission: Submission
 
 
-def build_graph(llm: LLM | None = None, hazard: HazardProvider | None = None):
-    """Compile the pipeline. `llm` reads ACORD text; `hazard` is the live hazard provider."""
+def build_graph(
+    llm: LLM | None = None,
+    hazard: HazardProvider | None = None,
+    risk_llm: LLM | None = None,
+):
+    """Compile the pipeline.
+
+    `llm` reads ACORD text, `hazard` is the live hazard provider and `risk_llm` reviews the
+    risk after the rules run. Any of them may be None.
+    """
 
     async def intake(state: PipelineState) -> dict[str, Any]:
         result = await intake_agent(state["raw"], state["submission_id"], llm)
@@ -93,13 +101,15 @@ def build_graph(llm: LLM | None = None, hazard: HazardProvider | None = None):
 
     async def risk_assessment(state: PipelineState) -> dict[str, Any]:
         enrichment = sorted(state["enrichment"], key=lambda r: r.source)  # stable output order
-        memo = await risk_assessment_agent(state["submission"], enrichment)
+        memo = await risk_assessment_agent(state["submission"], enrichment, risk_llm)
         log.info(
             "agent_completed",
             agent="risk_assessment",
             submission_id=state["submission_id"],
             sources=[r.source for r in enrichment],
             flags=[f.rule_id for f in memo.flags],
+            assessed_by=memo.assessed_by,
+            rejected=len(memo.rejected_flags),
         )
         return {"risk_memo": memo}
 
