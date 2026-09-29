@@ -1,1 +1,1 @@
-"""Pipeline orchestration. Phase 1: a plain sequential runner. Phase 3: LangGraph with Send."""
+"""Pipeline orchestration: a LangGraph StateGraph with Send fan-out for enrichment."""
