@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./underwriting.db"
     cors_origins: list[str] = [
         "http://localhost:5173"
-    ]  # Vite's default port, for the React app later
+    ]  # Vite's default port, for the Vue workbench
 
     # LLM providers. Any provider without a key is skipped; the rest are tried in this order.
     llm_providers: list[str] = ["groq", "gemini", "openai"]

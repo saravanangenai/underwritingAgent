@@ -283,4 +283,8 @@ src/underwriting_agent/
 4. Phase 4: LLM risk assessment and triage with citations, guardrails and an eval set
 5. Phase 5: hash-chained, replayable decision log; CI; larger eval set with consistency runs
 6. Phase 6 (this): provider comparison with latency, tokens, pacing and availability
-7. React underwriter workbench (CORS for `localhost:5173` is already enabled)
+7. Vue underwriter workbench (Vue 3 + Vite + TypeScript in `frontend/`; CORS for
+   `localhost:5173`, Vite's dev port, is already enabled): a submission queue, a detail view
+   with the decision, cited flags, LLM memo, hazard data and audit record, a new-submission
+   form that accepts raw ACORD text, and an audit-chain status banner. Needs a
+   `GET /submissions` list endpoint first.
