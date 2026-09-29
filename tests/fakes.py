@@ -129,3 +129,37 @@ class FakeHazard:
             data={"status": "ok", "composite_score": self.score},
             retrieved_at=utcnow(),
         )
+
+
+# --- Risk review (Phase 4) ---
+
+
+def risk_review(
+    recommendation: str = "approve",
+    confidence: float = 0.9,
+    flags: list[dict[str, str]] | None = None,
+    **extra: Any,
+) -> dict[str, Any]:
+    """A well-formed LLM risk review reply."""
+    return {
+        "flags": flags or [],
+        "narrative": "Synthetic memo.",
+        "risk_score": 30,
+        "recommendation": recommendation,
+        "confidence": confidence,
+        "rationale": "Synthetic rationale.",
+        **extra,
+    }
+
+
+class RoutingLLM(FakeLLM):
+    """Answers the ACORD intake prompt and the risk review prompt with different replies."""
+
+    def __init__(self, intake: dict[str, Any], risk: dict[str, Any]):
+        super().__init__()
+        self.intake, self.risk = intake, risk
+
+    async def complete_json(self, system: str, user: str) -> LLMReply:
+        self.calls.append((system, user))
+        data = self.risk if "underwriting assistant" in system else self.intake
+        return LLMReply(data=data, provider="fake", model="fake-model")

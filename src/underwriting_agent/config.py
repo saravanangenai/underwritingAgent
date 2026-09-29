@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     # LLM providers. Any provider without a key is skipped; the rest are tried in this order.
     llm_providers: list[str] = ["groq", "gemini", "openai"]
     llm_timeout_seconds: float = 60.0
+    # Let the LLM review each risk after the rules run (one extra LLM call per submission).
+    llm_risk_assessment: bool = True
     groq_api_key: SecretStr | None = None
     gemini_api_key: SecretStr | None = None
     openai_api_key: SecretStr | None = None

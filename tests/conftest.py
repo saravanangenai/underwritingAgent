@@ -16,6 +16,7 @@ def settings(tmp_path):
         gemini_api_key=None,
         openai_api_key=None,
         apify_token=None,
+        llm_risk_assessment=False,  # tests that need it pass a risk LLM explicitly
     )
 
 

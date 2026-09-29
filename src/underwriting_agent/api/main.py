@@ -34,19 +34,22 @@ def create_app(
 
     app = FastAPI(
         title="Homeowners Underwriting Agent",
-        version="0.3.0",
+        version="0.4.0",
         description=(
-            "Phase 3: LangGraph pipeline with parallel enrichment, live FEMA National Risk "
-            "Index hazard data through the Apify MCP server, and LLM intake of raw ACORD text. "
-            "Risk assessment is still rule-based; loss history and property data are mocked."
+            "Phase 4: rules plus an LLM risk review with cited flags and guardrailed triage. "
+            "LangGraph pipeline with parallel enrichment, live FEMA National Risk Index hazard "
+            "data through the Apify MCP server, and LLM intake of raw ACORD text. Loss history "
+            "and property data are mocked."
         ),
         lifespan=lifespan,
     )
     app.state.llm = llm if llm is not None else build_llm(settings)
+    app.state.risk_llm = app.state.llm if settings.llm_risk_assessment else None
     app.state.hazard = hazard if hazard is not None else build_hazard_provider(settings)
     log.info(
         "app_configured",
         llm=app.state.llm is not None,
+        risk_llm=app.state.risk_llm is not None,
         hazard="apify" if app.state.hazard is not None else "mock",
     )
     app.add_middleware(

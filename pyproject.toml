@@ -1,7 +1,7 @@
 [project]
 name = "underwriting-agent"
-version = "0.3.0"
-description = "Homeowners underwriting agent pipeline (Phase 3: LangGraph pipeline and live Apify hazard data)"
+version = "0.4.0"
+description = "Homeowners underwriting agent pipeline (Phase 4: LLM risk review with guardrails)"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",

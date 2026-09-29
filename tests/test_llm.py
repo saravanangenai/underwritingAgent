@@ -12,9 +12,14 @@ def _chat_reply(content: str) -> httpx.Response:
     return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
 
 
-def _client(handler, provider: str = "groq") -> ProviderClient:
+def _client(handler, provider: str = "groq", max_retries: int = 2) -> ProviderClient:
     return ProviderClient(
-        provider, "test-key", "test-model", transport=httpx.MockTransport(handler)
+        provider,
+        "test-key",
+        "test-model",
+        transport=httpx.MockTransport(handler),
+        max_retries=max_retries,
+        retry_base_seconds=0,  # no real waiting in tests
     )
 
 
@@ -98,3 +103,48 @@ def test_build_llm_without_keys_is_none():
 def test_build_llm_rejects_unknown_provider():
     with pytest.raises(ValueError, match="Unknown LLM provider"):
         build_llm(Settings(_env_file=None, llm_providers=["claude"]))
+
+
+async def test_rate_limit_is_retried_then_succeeds():
+    replies = iter([httpx.Response(429), httpx.Response(503), _chat_reply('{"ok": true}')])
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return next(replies)
+
+    reply = await _client(handler).complete_json("s", "u")
+    assert reply.data == {"ok": True}
+    assert len(calls) == 3
+
+
+async def test_retries_are_bounded():
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(429)
+
+    with pytest.raises(LLMError, match="HTTP 429"):
+        await _client(handler, max_retries=2).complete_json("s", "u")
+    assert len(calls) == 3  # first try + 2 retries
+
+
+async def test_auth_errors_are_not_retried():
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(401)
+
+    with pytest.raises(LLMError, match="HTTP 401"):
+        await _client(handler).complete_json("s", "u")
+    assert len(calls) == 1
+
+
+def test_retry_delay_honours_retry_after_with_a_cap():
+    from underwriting_agent.llm.client import _retry_delay
+
+    assert _retry_delay(httpx.Response(429, headers={"retry-after": "3"}), 0, 2, 20) == 3
+    assert _retry_delay(httpx.Response(429, headers={"retry-after": "999"}), 0, 2, 20) == 20
+    assert _retry_delay(httpx.Response(429), 2, 2, 20) == 8  # 2 * 2**2

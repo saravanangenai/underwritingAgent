@@ -15,9 +15,11 @@ async def compliance_agent(
     intake_model: str | None = None,
 ) -> DecisionLogEntry:
     # Record every model that touched the decision, so the audit trail can be reproduced.
-    model_version = rules.MODEL_VERSION
-    if intake_model:
-        model_version = f"intake={intake_model}; risk={rules.MODEL_VERSION}"
+    risk_model = rules.MODEL_VERSION if memo.assessed_by == "rules" else memo.assessed_by
+    parts = [f"intake={intake_model}"] if intake_model else []
+    if parts or risk_model != rules.MODEL_VERSION:
+        parts.append(f"risk={risk_model}")
+    model_version = "; ".join(parts) or rules.MODEL_VERSION
     return DecisionLogEntry(
         submission_id=submission.submission_id,
         decision=decision,
