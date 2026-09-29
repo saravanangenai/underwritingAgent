@@ -1,0 +1,18 @@
+{
+  "applicant": {"first_name": "Sample", "last_name": "Applicant"},
+  "property": {
+    "address_line1": "14 Old Mill Ln",
+    "city": "Irvine",
+    "state": "CA",
+    "zip": "92618",
+    "year_built": 1978,
+    "square_feet": 1800,
+    "construction_type": "frame",
+    "roof_type": "shingle",
+    "roof_year": 1995,
+    "has_pool": false,
+    "has_trampoline": false
+  },
+  "coverage": {"coverage_a_limit": 500000, "deductible": 2500, "requested_effective_date": "2026-12-01"},
+  "prior_insurance": {"carrier": "Example Mutual", "years_with_carrier": 10, "claims_last_5_years": 0}
+}

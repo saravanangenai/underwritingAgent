@@ -1,0 +1,10 @@
+{
+  "applicant": {"first_name": "Sample", "last_name": "Applicant"},
+  "property": {
+    "address_line1": "9 Oak Lane",
+    "city": "Irvine",
+    "state": "CA",
+    "zip": "92618"
+  },
+  "coverage": {"requested_effective_date": "2026-11-15"}
+}

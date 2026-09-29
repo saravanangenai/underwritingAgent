@@ -1,0 +1,437 @@
+{
+  "info": {
+    "name": "Homeowners Underwriting Agent",
+    "description": "Requests for the local FastAPI service. Start it with\n`uv run uvicorn underwriting_agent.api.main:app --reload`, then run the folders in order. Each POST /underwrite saves its submission_id into the `submission_id` collection variable, which the Submissions folder uses.\n\nAll applicants and properties are synthetic.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "submission_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health",
+      "item": [
+        {
+          "name": "Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Liveness check."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Underwrite (JSON)",
+      "item": [
+        {
+          "name": "Clean - auto approve",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('submission_id', body.submission_id);",
+                  "pm.test('status field is completed', () => pm.expect(body.status).to.eql('completed'));",
+                  "pm.test('auto_approve', () => pm.expect(body.decision.action).to.eql('auto_approve'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/underwrite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "underwrite"
+              ]
+            },
+            "description": "No caution or hard-stop flags, so it is auto-approved with a mock premium.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicant\": {\n    \"first_name\": \"Sample\",\n    \"last_name\": \"Applicant\"\n  },\n  \"property\": {\n    \"address_line1\": \"22 Willow Creek Dr\",\n    \"city\": \"Rancho Santa Margarita\",\n    \"state\": \"CA\",\n    \"zip\": \"92688\",\n    \"year_built\": 2005,\n    \"square_feet\": 2450,\n    \"construction_type\": \"frame\",\n    \"roof_type\": \"tile\",\n    \"roof_year\": 2018,\n    \"has_pool\": false,\n    \"has_trampoline\": false\n  },\n  \"coverage\": {\n    \"coverage_a_limit\": 650000,\n    \"deductible\": 2500,\n    \"requested_effective_date\": \"2026-11-01\"\n  },\n  \"prior_insurance\": {\n    \"carrier\": \"Example Mutual\",\n    \"years_with_carrier\": 6,\n    \"claims_last_5_years\": 0\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "High risk - refer to underwriter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('submission_id', body.submission_id);",
+                  "pm.test('status field is referred', () => pm.expect(body.status).to.eql('referred'));",
+                  "pm.test('cites SR-010, SR-011, SR-012, HZ-001', () => {",
+                  "  const ids = body.risk_memo.flags.map(f => f.rule_id);",
+                  "  ['SR-010', 'SR-011', 'SR-012', 'HZ-001'].forEach(id => pm.expect(ids).to.include(id));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/underwrite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "underwrite"
+              ]
+            },
+            "description": "Pool, trampoline, 3 claims and a high hazard ZIP: referred with cited flags.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicant\": {\n    \"first_name\": \"Sample\",\n    \"last_name\": \"Applicant\"\n  },\n  \"property\": {\n    \"address_line1\": \"9 Canyon Ridge Rd\",\n    \"city\": \"Ventura\",\n    \"state\": \"CA\",\n    \"zip\": \"93001\",\n    \"year_built\": 1994,\n    \"square_feet\": 3100,\n    \"construction_type\": \"frame\",\n    \"roof_type\": \"shingle\",\n    \"roof_year\": 2010,\n    \"has_pool\": true,\n    \"has_trampoline\": true\n  },\n  \"coverage\": {\n    \"coverage_a_limit\": 900000,\n    \"deductible\": 5000,\n    \"requested_effective_date\": \"2026-11-15\"\n  },\n  \"prior_insurance\": {\n    \"carrier\": \"Example Mutual\",\n    \"years_with_carrier\": 3,\n    \"claims_last_5_years\": 3\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Decline - roof too old",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('submission_id', body.submission_id);",
+                  "pm.test('status field is declined', () => pm.expect(body.status).to.eql('declined'));",
+                  "pm.test('auto_decline', () => pm.expect(body.decision.action).to.eql('auto_decline'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/underwrite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "underwrite"
+              ]
+            },
+            "description": "Roof older than 25 years triggers hard stop HS-001.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicant\": {\n    \"first_name\": \"Sample\",\n    \"last_name\": \"Applicant\"\n  },\n  \"property\": {\n    \"address_line1\": \"14 Old Mill Ln\",\n    \"city\": \"Irvine\",\n    \"state\": \"CA\",\n    \"zip\": \"92618\",\n    \"year_built\": 1978,\n    \"square_feet\": 1800,\n    \"construction_type\": \"frame\",\n    \"roof_type\": \"shingle\",\n    \"roof_year\": 1995,\n    \"has_pool\": false,\n    \"has_trampoline\": false\n  },\n  \"coverage\": {\n    \"coverage_a_limit\": 500000,\n    \"deductible\": 2500,\n    \"requested_effective_date\": \"2026-12-01\"\n  },\n  \"prior_insurance\": {\n    \"carrier\": \"Example Mutual\",\n    \"years_with_carrier\": 10,\n    \"claims_last_5_years\": 0\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Incomplete - needs more info (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 422', () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('submission_id', body.submission_id);",
+                  "pm.test('status field is needs_more_info', () => pm.expect(body.status).to.eql('needs_more_info'));",
+                  "pm.test('reports the missing limit', () => pm.expect(body.missing_fields).to.include('coverage.coverage_a_limit is required'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/underwrite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "underwrite"
+              ]
+            },
+            "description": "coverage.coverage_a_limit is missing, so nothing is enriched or decided.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicant\": {\n    \"first_name\": \"Sample\",\n    \"last_name\": \"Applicant\"\n  },\n  \"property\": {\n    \"address_line1\": \"9 Oak Lane\",\n    \"city\": \"Irvine\",\n    \"state\": \"CA\",\n    \"zip\": \"92618\"\n  },\n  \"coverage\": {\n    \"requested_effective_date\": \"2026-11-15\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Underwrite (ACORD text, needs an LLM key)",
+      "item": [
+        {
+          "name": "ACORD text - LLM intake",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('submission_id', body.submission_id);",
+                  "pm.test('status field is referred', () => pm.expect(body.status).to.eql('referred'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/underwrite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "underwrite"
+              ]
+            },
+            "description": "Raw application text. The LLM (Groq, then Gemini, then OpenAI) extracts the fields; the pool then triggers SR-010. Returns 503 if no LLM key is set.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"acord_text\": \"ACORD 80 HOMEOWNER APPLICATION (SYNTHETIC SAMPLE)\\nAPPLICANT: Sample Applicant\\nLOCATION OF PROPERTY: 415 Harbor View Ln, San Clemente, CA 92672\\nPROPOSED EFFECTIVE DATE: 12/01/2026\\nCOVERAGES: A - DWELLING $720,000    DEDUCTIBLE (ALL PERILS): $2,500\\nRATING INFORMATION: YEAR BUILT 2008   CONSTRUCTION: Masonry   SQ FT: 2,650\\nROOF: Tile, replaced 2019\\nDISTANCE TO COAST: 3.5 miles\\nSWIMMING POOL: Y (in-ground, fenced)    TRAMPOLINE: N\\nPRIOR CARRIER: Example Mutual, 6 years\\nLOSS HISTORY (LAST 5 YEARS): None reported\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Submissions (uses {{submission_id}})",
+      "item": [
+        {
+          "name": "Get submission status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has a status', () => pm.expect(pm.response.json().status).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/submissions/{{submission_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "submissions",
+                "{{submission_id}}"
+              ]
+            },
+            "description": "Status of the most recent submission posted from this collection."
+          }
+        },
+        {
+          "name": "Get decision (audit record)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has model_version', () => pm.expect(pm.response.json().model_version).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/submissions/{{submission_id}}/decision",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "submissions",
+                "{{submission_id}}",
+                "decision"
+              ]
+            },
+            "description": "Decision log entry with rules_version and model_version. 404 if the last submission ended in needs_more_info."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Error cases",
+      "item": [
+        {
+          "name": "Duplicate submission_id (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/underwrite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "underwrite"
+              ]
+            },
+            "description": "Re-posts the last submission_id. Run after any successful underwrite.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"submission_id\": \"{{submission_id}}\",\n  \"applicant\": {\n    \"first_name\": \"Sample\",\n    \"last_name\": \"Applicant\"\n  },\n  \"property\": {\n    \"address_line1\": \"22 Willow Creek Dr\",\n    \"city\": \"Rancho Santa Margarita\",\n    \"state\": \"CA\",\n    \"zip\": \"92688\",\n    \"year_built\": 2005,\n    \"square_feet\": 2450,\n    \"construction_type\": \"frame\",\n    \"roof_type\": \"tile\",\n    \"roof_year\": 2018,\n    \"has_pool\": false,\n    \"has_trampoline\": false\n  },\n  \"coverage\": {\n    \"coverage_a_limit\": 650000,\n    \"deductible\": 2500,\n    \"requested_effective_date\": \"2026-11-01\"\n  },\n  \"prior_insurance\": {\n    \"carrier\": \"Example Mutual\",\n    \"years_with_carrier\": 6,\n    \"claims_last_5_years\": 0\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Unknown submission (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/submissions/SUB-DOES-NOT-EXIST",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "submissions",
+                "SUB-DOES-NOT-EXIST"
+              ]
+            },
+            "description": "Lookup of an id that was never submitted."
+          }
+        }
+      ]
+    }
+  ]
+}

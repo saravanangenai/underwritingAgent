@@ -1,0 +1,18 @@
+{
+  "applicant": {"first_name": "Sample", "last_name": "Applicant"},
+  "property": {
+    "address_line1": "9 Canyon Ridge Rd",
+    "city": "Ventura",
+    "state": "CA",
+    "zip": "93001",
+    "year_built": 1994,
+    "square_feet": 3100,
+    "construction_type": "frame",
+    "roof_type": "shingle",
+    "roof_year": 2010,
+    "has_pool": true,
+    "has_trampoline": true
+  },
+  "coverage": {"coverage_a_limit": 900000, "deductible": 5000, "requested_effective_date": "2026-11-15"},
+  "prior_insurance": {"carrier": "Example Mutual", "years_with_carrier": 3, "claims_last_5_years": 3}
+}
