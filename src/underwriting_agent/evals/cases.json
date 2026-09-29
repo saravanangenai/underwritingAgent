@@ -22,18 +22,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "101 Test Ln",
+        "address_line1": "1 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2005,
-        "roof_year": 2018,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -64,18 +64,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "102 Test Ln",
+        "address_line1": "2 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2020,
-        "roof_year": 2020,
+        "year_built": "{year-6}",
+        "roof_year": "{year-6}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 750000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -106,18 +106,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "103 Test Ln",
+        "address_line1": "3 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2005,
-        "roof_year": 2018,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -148,19 +148,19 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "104 Test Ln",
+        "address_line1": "4 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2005,
-        "roof_year": 2018,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": false,
         "has_trampoline": false,
         "coastal_distance_miles": 6
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -191,18 +191,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "105 Test Ln",
+        "address_line1": "5 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 1998,
-        "roof_year": 2002,
+        "year_built": "{year-28}",
+        "roof_year": "{year-24}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -233,18 +233,186 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "106 Test Ln",
+        "address_line1": "6 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2015,
-        "roof_year": 2015,
+        "year_built": "{year-11}",
+        "roof_year": "{year-11}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 1200000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "B1",
+    "kind": "rules",
+    "expected": "auto_approve",
+    "why": "Roof exactly 25 years old: HS-001 needs more than 25",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "7 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-30}",
+        "roof_year": "{year-25}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "B3",
+    "kind": "rules",
+    "expected": "auto_approve",
+    "why": "Composite hazard 69.9, just under the HZ-001 cutoff",
+    "hazard": {
+      "composite_score": 69.9,
+      "tier": "Relatively Moderate",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "8 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "B8",
+    "kind": "rules",
+    "expected": "auto_approve",
+    "why": "Old house (1925) with a new roof",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "9 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": 1925,
+        "roof_year": "{year-2}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "B10",
+    "kind": "rules",
+    "expected": "auto_approve",
+    "why": "Roof installed the year the house was built",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "10 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-3}",
+        "roof_year": "{year-3}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -275,18 +443,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "101 Test Ln",
+        "address_line1": "11 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 1990,
-        "roof_year": 1995,
+        "year_built": "{year-36}",
+        "roof_year": "{year-31}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -317,18 +485,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "102 Test Ln",
+        "address_line1": "12 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 1990,
-        "roof_year": 2000,
+        "year_built": "{year-36}",
+        "roof_year": "{year-26}",
         "has_pool": true,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -359,18 +527,102 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "103 Test Ln",
+        "address_line1": "13 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 1990,
-        "roof_year": 1998,
+        "year_built": "{year-36}",
+        "roof_year": "{year-28}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "B5",
+    "kind": "rules",
+    "expected": "auto_decline",
+    "why": "Roof 30 years old (HS-001) outranks the trampoline",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "14 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-40}",
+        "roof_year": "{year-30}",
+        "has_pool": false,
+        "has_trampoline": true
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "B7",
+    "kind": "rules",
+    "expected": "auto_decline",
+    "why": "Roof 40 years old (HS-001) with high hazard",
+    "hazard": {
+      "composite_score": 90,
+      "tier": "Very High",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "15 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-45}",
+        "roof_year": "{year-40}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -401,18 +653,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "101 Test Ln",
+        "address_line1": "16 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2005,
-        "roof_year": 2018,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": true,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -443,18 +695,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "102 Test Ln",
+        "address_line1": "17 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2005,
-        "roof_year": 2018,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": false,
         "has_trampoline": true
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -485,18 +737,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "103 Test Ln",
+        "address_line1": "18 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2005,
-        "roof_year": 2018,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -527,18 +779,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "104 Test Ln",
+        "address_line1": "19 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2005,
-        "roof_year": 2018,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -561,18 +813,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "105 Test Ln",
+        "address_line1": "20 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2005,
-        "roof_year": 2018,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -581,10 +833,52 @@
     }
   },
   {
-    "id": "J1",
-    "kind": "judgment",
+    "id": "B2",
+    "kind": "rules",
     "expected": "refer_to_underwriter",
-    "why": "Roof (2001) is older than the house (2010): data inconsistency (UW-105)",
+    "why": "Composite hazard exactly 70 (HZ-001)",
+    "hazard": {
+      "composite_score": 70,
+      "tier": "Relatively High",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "21 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "B4",
+    "kind": "rules",
+    "expected": "refer_to_underwriter",
+    "why": "Five claims in five years (SR-011)",
     "hazard": {
       "composite_score": 30,
       "tier": "Relatively Low",
@@ -603,18 +897,136 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "101 Test Ln",
+        "address_line1": "22 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2010,
-        "roof_year": 2001,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 5
+      }
+    }
+  },
+  {
+    "id": "B6",
+    "kind": "rules",
+    "expected": "refer_to_underwriter",
+    "why": "Pool, trampoline and two claims",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "23 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
+        "has_pool": true,
+        "has_trampoline": true
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 2
+      }
+    }
+  },
+  {
+    "id": "B9",
+    "kind": "rules",
+    "expected": "refer_to_underwriter",
+    "why": "Hazard unavailable and a pool",
+    "hazard": {
+      "status": "unavailable",
+      "error": "Apify MCP call failed"
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "24 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
+        "has_pool": true,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "J1",
+    "kind": "judgment",
+    "expected": "refer_to_underwriter",
+    "why": "Roof older than the house: data inconsistency (UW-105)",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "25 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-16}",
+        "roof_year": "{year-25}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -645,18 +1057,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "102 Test Ln",
+        "address_line1": "26 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2005,
-        "roof_year": 2018,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -687,19 +1099,19 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "103 Test Ln",
+        "address_line1": "27 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2005,
-        "roof_year": 2018,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": false,
         "has_trampoline": false,
         "coastal_distance_miles": 0.3
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -711,7 +1123,7 @@
     "id": "J4",
     "kind": "judgment",
     "expected": "refer_to_underwriter",
-    "why": "$45,000 Coverage A for a 2019 home is implausibly low (UW-101)",
+    "why": "$45,000 Coverage A for a 7-year-old home is implausibly low (UW-101)",
     "hazard": {
       "composite_score": 30,
       "tier": "Relatively Low",
@@ -730,18 +1142,18 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "104 Test Ln",
+        "address_line1": "28 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2019,
-        "roof_year": 2019,
+        "year_built": "{year-7}",
+        "roof_year": "{year-7}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 45000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",
@@ -772,12 +1184,12 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "105 Test Ln",
+        "address_line1": "29 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2005,
-        "roof_year": 2018,
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
         "has_pool": false,
         "has_trampoline": false
       },
@@ -795,7 +1207,7 @@
     "id": "J6",
     "kind": "judgment",
     "expected": "refer_to_underwriter",
-    "why": "Year built 2031 is in the future (UW-105)",
+    "why": "Year built is in the future (UW-105)",
     "hazard": {
       "composite_score": 30,
       "tier": "Relatively Low",
@@ -814,18 +1226,356 @@
         "last_name": "Applicant"
       },
       "property": {
-        "address_line1": "106 Test Ln",
+        "address_line1": "30 Test Ln",
         "city": "Irvine",
         "state": "CA",
         "zip": "92618",
-        "year_built": 2031,
-        "roof_year": 2024,
+        "year_built": "{year+5}",
+        "roof_year": "{year-2}",
         "has_pool": false,
         "has_trampoline": false
       },
       "coverage": {
         "coverage_a_limit": 600000,
-        "requested_effective_date": "2026-11-01"
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "K4",
+    "kind": "judgment",
+    "expected": "refer_to_underwriter",
+    "why": "0.8 miles from the coast (UW-104)",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "31 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
+        "has_pool": false,
+        "has_trampoline": false,
+        "coastal_distance_miles": 0.8
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "K5",
+    "kind": "judgment",
+    "expected": "refer_to_underwriter",
+    "why": "Roof year is in the future (UW-105)",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "32 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-20}",
+        "roof_year": "{year+2}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "K6",
+    "kind": "judgment",
+    "expected": "refer_to_underwriter",
+    "why": "Hurricane rated Very High (99) though the composite is only 45 (UW-103)",
+    "hazard": {
+      "composite_score": 45,
+      "tier": "Relatively Moderate",
+      "top_hazards": [
+        {
+          "code": "HRCN",
+          "hazard": "Hurricane",
+          "score": 99,
+          "rating": "Very High"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "33 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "K7",
+    "kind": "judgment",
+    "expected": "refer_to_underwriter",
+    "why": "Effective date about 16 months away (UW-102)",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "34 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+500}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "K1",
+    "kind": "judgment",
+    "expected": "auto_approve",
+    "why": "1.5 miles from the coast is outside UW-104",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "35 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
+        "has_pool": false,
+        "has_trampoline": false,
+        "coastal_distance_miles": 1.5
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "K2",
+    "kind": "judgment",
+    "expected": "auto_approve",
+    "why": "Top peril is Relatively High, not Very High, so UW-103 does not apply",
+    "hazard": {
+      "composite_score": 52,
+      "tier": "Relatively Moderate",
+      "top_hazards": [
+        {
+          "code": "WFIR",
+          "hazard": "Wildfire",
+          "score": 88,
+          "rating": "Relatively High"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "36 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "K3",
+    "kind": "judgment",
+    "expected": "auto_approve",
+    "why": "$250,000 for a 40-year-old home is plausible",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "37 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-40}",
+        "roof_year": "{year-5}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 250000,
+        "requested_effective_date": "{date+60}"
+      },
+      "prior_insurance": {
+        "carrier": "Example Mutual",
+        "claims_last_5_years": 0
+      }
+    }
+  },
+  {
+    "id": "K8",
+    "kind": "judgment",
+    "expected": "auto_approve",
+    "why": "Effective date about 7 months away is within 12 months",
+    "hazard": {
+      "composite_score": 30,
+      "tier": "Relatively Low",
+      "top_hazards": [
+        {
+          "code": "ERQK",
+          "hazard": "Earthquake",
+          "score": 45,
+          "rating": "Relatively Moderate"
+        }
+      ]
+    },
+    "submission": {
+      "applicant": {
+        "first_name": "Eval",
+        "last_name": "Applicant"
+      },
+      "property": {
+        "address_line1": "38 Test Ln",
+        "city": "Irvine",
+        "state": "CA",
+        "zip": "92618",
+        "year_built": "{year-20}",
+        "roof_year": "{year-8}",
+        "has_pool": false,
+        "has_trampoline": false
+      },
+      "coverage": {
+        "coverage_a_limit": 600000,
+        "requested_effective_date": "{date+200}"
       },
       "prior_insurance": {
         "carrier": "Example Mutual",

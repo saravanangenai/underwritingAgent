@@ -12,6 +12,7 @@ from underwriting_agent.llm import LLMError
 from underwriting_agent.persistence import repository as repo
 from underwriting_agent.samples import SAMPLE_NAMES, load_sample
 from underwriting_agent.schemas import (
+    AuditVerification,
     DecisionLogEntry,
     NeedsMoreInfoResponse,
     SubmissionStatus,
@@ -117,3 +118,10 @@ async def get_submission_decision(submission_id: str, session: AsyncSession = De
     if entry is None:
         raise HTTPException(status_code=404, detail="No decision recorded for this submission")
     return entry
+
+
+@router.get("/audit/verify", response_model=AuditVerification)
+async def verify_audit_log(session: AsyncSession = Depends(get_session)):
+    """Recompute the decision log's hash chain. `ok` is false if any entry was edited,
+    removed or reordered, and `first_bad_entry_id` points at the first broken entry."""
+    return await repo.verify_chain(session)

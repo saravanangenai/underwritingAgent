@@ -1,7 +1,7 @@
 [project]
 name = "underwriting-agent"
-version = "0.4.0"
-description = "Homeowners underwriting agent pipeline (Phase 4: LLM risk review with guardrails)"
+version = "0.5.0"
+description = "Homeowners underwriting agent pipeline (Phase 5: hash-chained audit log, CI and a larger eval set)"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",

@@ -1,0 +1,1381 @@
+{
+  "mode": "llm",
+  "models": [
+    "openai/gpt-oss-120b",
+    "gemini-flash-latest",
+    "gpt-5.4-mini"
+  ],
+  "created_at": "2026-09-29T03:54:43.174396Z",
+  "rules_version": "2026-09-phase4",
+  "risk_prompt_version": "db6042a7739d",
+  "summary": [
+    {
+      "accuracy": "38/38",
+      "rules_cases": "24/24",
+      "judgment_cases": "14/14",
+      "unsafe_approvals": 0,
+      "over_referrals": 0,
+      "llm_fallbacks": 2,
+      "rejected_llm_flags": 0
+    },
+    {
+      "accuracy": "38/38",
+      "rules_cases": "24/24",
+      "judgment_cases": "14/14",
+      "unsafe_approvals": 0,
+      "over_referrals": 0,
+      "llm_fallbacks": 0,
+      "rejected_llm_flags": 0
+    },
+    {
+      "accuracy": "35/38",
+      "rules_cases": "21/24",
+      "judgment_cases": "14/14",
+      "unsafe_approvals": 0,
+      "over_referrals": 3,
+      "llm_fallbacks": 0,
+      "rejected_llm_flags": 0
+    }
+  ],
+  "consistency": {
+    "runs": 3,
+    "stable_cases": "35/38",
+    "unstable": {
+      "A3": {
+        "auto_approve": 2,
+        "refer_to_underwriter": 1
+      },
+      "A6": {
+        "auto_approve": 2,
+        "refer_to_underwriter": 1
+      },
+      "B1": {
+        "auto_approve": 2,
+        "refer_to_underwriter": 1
+      }
+    }
+  },
+  "cases": [
+    [
+      {
+        "id": "A1",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "A2",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.86,
+        "rejected_flags": []
+      },
+      {
+        "id": "A3",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "A4",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "A5",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.86,
+        "rejected_flags": []
+      },
+      {
+        "id": "A6",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "B1",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.86,
+        "rejected_flags": []
+      },
+      {
+        "id": "B3",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "B8",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.86,
+        "rejected_flags": []
+      },
+      {
+        "id": "B10",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "D1",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "D2",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001",
+          "SR-010"
+        ],
+        "assessed_by": "rules",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "D3",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "B5",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001",
+          "SR-012"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "B7",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001",
+          "HZ-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "R1",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-010"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.75,
+        "rejected_flags": []
+      },
+      {
+        "id": "R2",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-012"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": null,
+        "rejected_flags": []
+      },
+      {
+        "id": "R3",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-011"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "R4",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "HZ-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": null,
+        "rejected_flags": []
+      },
+      {
+        "id": "R5",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "HZ-002",
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "B2",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "HZ-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": null,
+        "rejected_flags": []
+      },
+      {
+        "id": "B4",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-011"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "B6",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-010",
+          "SR-011",
+          "SR-012"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.8,
+        "rejected_flags": []
+      },
+      {
+        "id": "B9",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-010",
+          "HZ-002"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.7,
+        "rejected_flags": []
+      },
+      {
+        "id": "J1",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-105"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "J2",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-103"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "J3",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-104"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "J4",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "J5",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-102"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "J6",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-105"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K4",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-104"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K5",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-105"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K6",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-103"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "K7",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-102"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K1",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.92,
+        "rejected_flags": []
+      },
+      {
+        "id": "K2",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K3",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.92,
+        "rejected_flags": []
+      },
+      {
+        "id": "K8",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "rules",
+        "confidence": null,
+        "rejected_flags": []
+      }
+    ],
+    [
+      {
+        "id": "A1",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.87,
+        "rejected_flags": []
+      },
+      {
+        "id": "A2",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "A3",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "A4",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "A5",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "A6",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.94,
+        "rejected_flags": []
+      },
+      {
+        "id": "B1",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "B3",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "B8",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "B10",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.9,
+        "rejected_flags": []
+      },
+      {
+        "id": "D1",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "D2",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001",
+          "SR-010"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "D3",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "B5",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001",
+          "SR-012"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "B7",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001",
+          "HZ-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "R1",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-010"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "R2",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-012",
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "R3",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-011"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "R4",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "HZ-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.75,
+        "rejected_flags": []
+      },
+      {
+        "id": "R5",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "HZ-002"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.7,
+        "rejected_flags": []
+      },
+      {
+        "id": "B2",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "HZ-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": null,
+        "rejected_flags": []
+      },
+      {
+        "id": "B4",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-011"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.75,
+        "rejected_flags": []
+      },
+      {
+        "id": "B6",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-010",
+          "SR-011",
+          "SR-012"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "B9",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-010",
+          "HZ-002"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "J1",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-105"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "J2",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-103"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.8,
+        "rejected_flags": []
+      },
+      {
+        "id": "J3",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-104"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.75,
+        "rejected_flags": []
+      },
+      {
+        "id": "J4",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "J5",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-102"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "J6",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-105"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K4",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-101",
+          "UW-104"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K5",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-105"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "K6",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-103"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "K7",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-102"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K1",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K2",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K3",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.9,
+        "rejected_flags": []
+      },
+      {
+        "id": "K8",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.92,
+        "rejected_flags": []
+      }
+    ],
+    [
+      {
+        "id": "A1",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "A2",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.92,
+        "rejected_flags": []
+      },
+      {
+        "id": "A3",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "A4",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "A5",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "gemini/gemini-flash-latest",
+        "confidence": 0.92,
+        "rejected_flags": []
+      },
+      {
+        "id": "A6",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "B1",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "B3",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.92,
+        "rejected_flags": []
+      },
+      {
+        "id": "B8",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.86,
+        "rejected_flags": []
+      },
+      {
+        "id": "B10",
+        "kind": "rules",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.88,
+        "rejected_flags": []
+      },
+      {
+        "id": "D1",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "D2",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001",
+          "SR-010"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "D3",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "B5",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001",
+          "SR-012",
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "B7",
+        "kind": "rules",
+        "expected": "auto_decline",
+        "actual": "auto_decline",
+        "flags": [
+          "HS-001",
+          "HZ-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 1.0,
+        "rejected_flags": []
+      },
+      {
+        "id": "R1",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-010"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "R2",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-012"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "R3",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-011",
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "R4",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "HZ-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "R5",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "HZ-002",
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.75,
+        "rejected_flags": []
+      },
+      {
+        "id": "B2",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "HZ-001"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": null,
+        "rejected_flags": []
+      },
+      {
+        "id": "B4",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-011",
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "B6",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-010",
+          "SR-011",
+          "SR-012"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.8,
+        "rejected_flags": []
+      },
+      {
+        "id": "B9",
+        "kind": "rules",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "SR-010",
+          "HZ-002"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "J1",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-105"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "J2",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-103"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "J3",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-104"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "J4",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-101"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "J5",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-102"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "J6",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-105"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.8,
+        "rejected_flags": []
+      },
+      {
+        "id": "K4",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-104"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.78,
+        "rejected_flags": []
+      },
+      {
+        "id": "K5",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-105"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K6",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-103"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.86,
+        "rejected_flags": []
+      },
+      {
+        "id": "K7",
+        "kind": "judgment",
+        "expected": "refer_to_underwriter",
+        "actual": "refer_to_underwriter",
+        "flags": [
+          "UW-102"
+        ],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K1",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.85,
+        "rejected_flags": []
+      },
+      {
+        "id": "K2",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.88,
+        "rejected_flags": []
+      },
+      {
+        "id": "K3",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "groq/openai/gpt-oss-120b",
+        "confidence": 0.9,
+        "rejected_flags": []
+      },
+      {
+        "id": "K8",
+        "kind": "judgment",
+        "expected": "auto_approve",
+        "actual": "auto_approve",
+        "flags": [],
+        "assessed_by": "gemini/gemini-flash-latest",
+        "confidence": 0.95,
+        "rejected_flags": []
+      }
+    ]
+  ]
+}

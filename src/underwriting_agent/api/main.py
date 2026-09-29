@@ -34,9 +34,10 @@ def create_app(
 
     app = FastAPI(
         title="Homeowners Underwriting Agent",
-        version="0.4.0",
+        version="0.5.0",
         description=(
-            "Phase 4: rules plus an LLM risk review with cited flags and guardrailed triage. "
+            "Phase 5: hash-chained, replayable audit log. Rules plus an LLM risk review with "
+            "cited flags and guardrailed triage. "
             "LangGraph pipeline with parallel enrichment, live FEMA National Risk Index hazard "
             "data through the Apify MCP server, and LLM intake of raw ACORD text. Loss history "
             "and property data are mocked."

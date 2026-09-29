@@ -13,6 +13,7 @@ from pydantic import ValidationError
 
 from underwriting_agent.llm import LLM, LLMError
 from underwriting_agent.schemas import Submission
+from underwriting_agent.utils import prompt_version
 
 # Where each Submission field comes from in the raw payload, used for readable error messages.
 _FIELD_SOURCES = {
@@ -57,6 +58,7 @@ Rules:
 - has_pool / has_trampoline are true or false only when the text says so.
 - claims_last_5_years is 0 when the text says there were no losses or claims.
 - roof_year is the year the roof was installed or last replaced."""
+ACORD_PROMPT_VERSION = prompt_version(ACORD_SYSTEM_PROMPT)
 
 
 @dataclass

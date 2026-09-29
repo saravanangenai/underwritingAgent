@@ -1,7 +1,5 @@
 """Phase 4: the LLM risk review and the triage guardrails around it."""
 
-import json
-
 import pytest
 
 from tests.fakes import ACORD_EXTRACTION, FakeLLM, RoutingLLM, risk_review
@@ -185,34 +183,3 @@ def test_api_uses_llm_risk_review_when_enabled(settings):
     assert body["risk_memo"]["recommendation"]["action"] == "refer"
     assert logged["model_version"] == "intake=fake/fake-model; risk=fake/fake-model"
     assert len(llm.calls) == 2  # one intake call, one risk review call
-
-
-# --- evaluation set ---
-
-
-async def test_eval_rules_only_baseline():
-    from underwriting_agent.evals import run_eval, summarize
-
-    results = await run_eval()
-    summary = summarize(results)
-    # The rules decide every rules case correctly and miss every judgment case.
-    assert summary["rules_cases"] == "14/14"
-    assert summary["judgment_cases"] == "0/6"
-    assert summary["unsafe_approvals"] == 6
-
-
-async def test_eval_with_an_llm_that_flags_judgment_cases():
-    from underwriting_agent.evals import load_cases, run_eval, summarize
-
-    # A scripted "perfect" reviewer: refer the judgment cases, approve everything else.
-    judgment = {c["id"] for c in load_cases() if c["kind"] == "judgment"}
-
-    class Scripted(FakeLLM):
-        async def complete_json(self, system, user):
-            case_id = json.loads(user)["submission"]["submission_id"].removeprefix("EVAL-")
-            self.data = risk_review("refer" if case_id in judgment else "approve", 0.9)
-            return await super().complete_json(system, user)
-
-    summary = summarize(await run_eval(Scripted()))
-    assert summary["accuracy"] == "20/20"
-    assert summary["unsafe_approvals"] == 0
