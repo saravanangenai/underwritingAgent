@@ -24,6 +24,7 @@ const PAGE: SubmissionPage = {
       confidence: 0.8,
       flags: ['SR-010', 'UW-105'],
       assessed_by: 'groq/openai/gpt-oss-120b',
+      reviewed_by: null,
     },
   ],
 }
@@ -52,6 +53,7 @@ const ENTRY: DecisionLogEntry = {
   inputs: { submission: { property_address: '9 Canyon Ridge Rd', has_pool: true }, enrichment: [] },
   prompt_versions: { risk_review: 'db779957cbc8' },
   llm_review_raw: null,
+  review: null,
   prev_hash: '0'.repeat(64),
   entry_hash: 'abcdef0123456789'.repeat(4),
 }
@@ -63,6 +65,8 @@ async function mountAt(path: string) {
     first_bad_entry_id: null,
     reason: null,
   })
+  // Detail pages also load the history; tests that care override this.
+  if (!vi.isMockFunction(api.getHistory)) vi.spyOn(api, 'getHistory').mockResolvedValue([])
   const router = makeRouter(createMemoryHistory())
   await router.push(path)
   const app = mount(App, { global: { plugins: [router] } })
@@ -228,5 +232,98 @@ describe('NewSubmissionView validation', () => {
     const input = field.find('input').element as HTMLInputElement
     input.value = '1.5'
     expect(input.checkValidity()).toBe(false)
+  })
+})
+
+describe('Underwriter review', () => {
+  const REFERRED = {
+    submission_id: 'SUB-ABC',
+    status: 'referred' as const,
+    created_at: '2026-09-29T10:00:00',
+    updated_at: '2026-09-29T10:00:01',
+  }
+  const REVIEWED: DecisionLogEntry = {
+    ...ENTRY,
+    decision: { ...ENTRY.decision, action: 'underwriter_approve', confidence: null },
+    review: {
+      action: 'approve',
+      note: 'Fence and gate confirmed by photos.',
+      reviewer: 'A. Underwriter',
+      reviewed_at: '2026-09-29T11:00:00',
+      supersedes_entry_hash: ENTRY.entry_hash,
+    },
+    entry_hash: 'feedfacecafebeef'.repeat(4),
+  }
+
+  it('is offered only while a submission is referred', async () => {
+    vi.spyOn(api, 'getSubmission').mockResolvedValue({ ...REFERRED, status: 'completed' })
+    vi.spyOn(api, 'getDecision').mockResolvedValue(ENTRY)
+    const { app } = await mountAt('/submissions/SUB-ABC')
+    expect(app.text()).not.toContain('Underwriter review')
+  })
+
+  it('needs a decision, a real note and a name before it can be sent', async () => {
+    vi.spyOn(api, 'getSubmission').mockResolvedValue(REFERRED)
+    vi.spyOn(api, 'getDecision').mockResolvedValue(ENTRY)
+    const { app } = await mountAt('/submissions/SUB-ABC')
+    const panel = app.find('[aria-labelledby="review-heading"]')
+    const button = () => panel.find('button[type="submit"]')
+
+    expect(button().attributes('disabled')).toBeDefined()
+    await panel.find('input[value="approve"]').setValue(true)
+    await panel.find('textarea').setValue('too short')
+    await panel.find('input[autocomplete="name"]').setValue('A. Underwriter')
+    expect(button().attributes('disabled')).toBeDefined()
+    await panel.find('textarea').setValue('Fence and gate confirmed by photos.')
+    expect(button().attributes('disabled')).toBeUndefined()
+    expect(button().text()).toBe('Approve')
+  })
+
+  it('records the decision, then shows it and the history', async () => {
+    const getSubmission = vi.spyOn(api, 'getSubmission').mockResolvedValue(REFERRED)
+    const getDecision = vi.spyOn(api, 'getDecision').mockResolvedValue(ENTRY)
+    const getHistory = vi.spyOn(api, 'getHistory').mockResolvedValue([ENTRY])
+    const review = vi.spyOn(api, 'review').mockImplementation(async () => {
+      getSubmission.mockResolvedValue({ ...REFERRED, status: 'completed' })
+      getDecision.mockResolvedValue(REVIEWED)
+      getHistory.mockResolvedValue([ENTRY, REVIEWED])
+      return REVIEWED
+    })
+    const { app, router } = await mountAt('/submissions/SUB-ABC')
+    const panel = app.find('[aria-labelledby="review-heading"]')
+    await panel.find('input[value="approve"]').setValue(true)
+    await panel.find('textarea').setValue('  Fence and gate confirmed by photos.  ')
+    await panel.find('input[autocomplete="name"]').setValue('A. Underwriter')
+    await panel.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(review).toHaveBeenCalledWith('SUB-ABC', {
+      action: 'approve',
+      note: 'Fence and gate confirmed by photos.',
+      reviewer: 'A. Underwriter',
+    })
+    expect(router.currentRoute.value.query).toEqual({ reviewed: '1' })
+    const text = app.text()
+    expect(text).toContain('Decision recorded by A. Underwriter')
+    expect(text).not.toContain('Underwriter review') // resolved, so no panel
+    expect(app.find('.timeline').text()).toContain('Fence and gate confirmed by photos.')
+    expect(localStorage.getItem('uw.reviewer')).toBe('A. Underwriter')
+  })
+
+  it('shows the API error when the review is refused', async () => {
+    const { ApiError } = await import('../api')
+    vi.spyOn(api, 'getSubmission').mockResolvedValue(REFERRED)
+    vi.spyOn(api, 'getDecision').mockResolvedValue(ENTRY)
+    vi.spyOn(api, 'review').mockRejectedValue(
+      new ApiError(409, 'Only referred submissions can be reviewed; this one is completed'),
+    )
+    const { app } = await mountAt('/submissions/SUB-ABC')
+    const panel = app.find('[aria-labelledby="review-heading"]')
+    await panel.find('input[value="decline"]').setValue(true)
+    await panel.find('textarea').setValue('Outside appetite for this territory.')
+    await panel.find('input[autocomplete="name"]').setValue('A. Underwriter')
+    await panel.find('form').trigger('submit')
+    await flushPromises()
+    expect(panel.find('[role="alert"]').text()).toContain('this one is completed')
   })
 })

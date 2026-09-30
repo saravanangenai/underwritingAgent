@@ -41,6 +41,7 @@ class SubmissionSummary(BaseModel):
     confidence: float | None = None
     flags: list[str] = []  # caution and hard-stop rule ids, rules and LLM alike
     assessed_by: str | None = None
+    reviewed_by: str | None = None  # underwriter who resolved a referral
 
 
 class SubmissionPage(BaseModel):

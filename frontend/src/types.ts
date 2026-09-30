@@ -1,6 +1,13 @@
 // Mirrors the FastAPI schemas in src/underwriting_agent/schemas. Keep the two in step.
 
-export type Action = 'auto_approve' | 'auto_decline' | 'refer_to_underwriter'
+export type Action =
+  | 'auto_approve'
+  | 'auto_decline'
+  | 'refer_to_underwriter'
+  | 'underwriter_approve'
+  | 'underwriter_decline'
+  | 'underwriter_request_info'
+export type ReviewAction = 'approve' | 'decline' | 'request_info'
 export type Severity = 'info' | 'caution' | 'hard_stop'
 export type SubmissionStatusValue =
   | 'running'
@@ -46,6 +53,20 @@ export interface EnrichmentResult {
   retrieved_at: string
 }
 
+export interface UnderwriterReview {
+  action: ReviewAction
+  note: string
+  reviewer: string
+  reviewed_at: string
+  supersedes_entry_hash: string | null
+}
+
+export interface ReviewRequest {
+  action: ReviewAction
+  note: string
+  reviewer: string
+}
+
 export interface DecisionLogEntry {
   submission_id: string
   decision: TriageDecision
@@ -59,6 +80,7 @@ export interface DecisionLogEntry {
   }
   prompt_versions: Record<string, string>
   llm_review_raw: Record<string, unknown> | null
+  review: UnderwriterReview | null
   prev_hash: string | null
   entry_hash: string | null
 }
@@ -76,6 +98,7 @@ export interface SubmissionSummary extends SubmissionStatus {
   confidence: number | null
   flags: string[]
   assessed_by: string | null
+  reviewed_by: string | null
 }
 
 export interface SubmissionPage {

@@ -1,7 +1,7 @@
 [project]
 name = "underwriting-agent"
-version = "0.7.0"
-description = "Homeowners underwriting agent pipeline (Phase 7: Vue underwriter workbench and submission list API)"
+version = "0.8.0"
+description = "Homeowners underwriting agent pipeline (Phase 8: underwriter review of referrals)"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",

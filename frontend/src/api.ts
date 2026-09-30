@@ -2,6 +2,7 @@ import type {
   AuditVerification,
   DecisionLogEntry,
   NeedsMoreInfoResponse,
+  ReviewRequest,
   SubmissionPage,
   SubmissionStatus,
   SubmissionStatusValue,
@@ -79,6 +80,19 @@ export const api = {
       if (error instanceof ApiError && error.status === 404) return null
       throw error
     }
+  },
+
+  /** Every audit entry for the submission, oldest first. */
+  getHistory(id: string): Promise<DecisionLogEntry[]> {
+    return request<DecisionLogEntry[]>(`/submissions/${encodeURIComponent(id)}/history`)
+  },
+
+  /** Record an underwriter's decision on a referred submission. */
+  review(id: string, body: ReviewRequest): Promise<DecisionLogEntry> {
+    return request<DecisionLogEntry>(`/submissions/${encodeURIComponent(id)}/review`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
   },
 
   verifyAudit(): Promise<AuditVerification> {

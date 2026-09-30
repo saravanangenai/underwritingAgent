@@ -59,6 +59,32 @@ npm test             # component and API-client tests (the API is mocked)
 npm run build        # type-check with vue-tsc, then a production build in dist/
 ```
 
+## Underwriter review (Phase 8)
+
+A referred submission waits for a person. On its detail page the workbench shows a review panel:
+approve, request information or decline, with a note (at least 10 characters) and the
+reviewer's name. The API behind it:
+
+```bash
+curl -X POST localhost:8000/submissions/SUB-1234/review -H 'content-type: application/json'   -d '{"action": "approve", "note": "Pool fence confirmed by photos.", "reviewer": "A. Underwriter"}'
+curl localhost:8000/submissions/SUB-1234/history
+```
+
+- Only `referred` submissions can be reviewed (409 otherwise, including a second review).
+- The review is **appended** to the hash-chained log as a new entry with the action
+  (`underwriter_approve`, `underwriter_decline` or `underwriter_request_info`), the note, the
+  reviewer, the time and `supersedes_entry_hash` pointing at the automated decision. That
+  decision stays in the chain unchanged. The new entry carries the inputs and risk memo forward,
+  so the latest entry for a submission is self-contained.
+- The submission moves to `completed`, `declined` or `needs_more_info`. Only an approval keeps
+  the premium quote.
+- `GET /submissions/{id}/history` returns every entry, oldest first; the workbench shows it as a
+  timeline, and the queue shows who reviewed each case.
+- **The reviewer name is typed, not verified.** Until sign-in exists, anyone who can reach the
+  API can record a review under any name. Add authentication before real use.
+- Existing Phase 5+ databases gain the `review_json` column in place on startup. Entries without
+  a review hash exactly as before, so existing chains still verify.
+
 ## Pipeline
 
 ```
@@ -267,13 +293,15 @@ HZ-001 cutoff of 70. The other synthetic addresses do not geocode, so they also 
 | GET | `/submissions` | Queue: newest first, `status` filter, `limit`/`offset` paging |
 | GET | `/submissions/{id}` | Stored submission and current status |
 | GET | `/submissions/{id}/decision` | Audit record for the decision |
+| POST | `/submissions/{id}/review` | Underwriter decision on a referred submission |
+| GET | `/submissions/{id}/history` | Every audit entry for a submission, oldest first |
 | GET | `/audit/verify` | Recompute the decision log's hash chain |
 | GET | `/health` | Liveness check |
 
 ## Develop
 
 ```bash
-uv run pytest        # 124 tests; fakes only, never calls an LLM, the geocoder or Apify
+uv run pytest        # 139 tests; fakes only, never calls an LLM, the geocoder or Apify
 uv run ruff check .  # lint
 uv run ruff format . # format
 ```
@@ -316,6 +344,9 @@ frontend/         Vue 3 underwriter workbench (see above)
 4. Phase 4: LLM risk assessment and triage with citations, guardrails and an eval set
 5. Phase 5: hash-chained, replayable decision log; CI; larger eval set with consistency runs
 6. Phase 6: provider comparison with latency, tokens, pacing and availability
-7. Phase 7 (this): Vue underwriter workbench (Vue 3 + Vite + TypeScript in `frontend/`): queue,
+7. Phase 7: Vue underwriter workbench (Vue 3 + Vite + TypeScript in `frontend/`): queue,
    submission detail with cited flags and audit record, new-submission form, audit banner;
    `GET /submissions` list endpoint
+8. Phase 8 (this): underwriter review of referrals (approve, decline, request info) with
+   notes, appended to the audit chain; submission history
+9. Next: sign-in and roles, so reviews are attributed to verified users

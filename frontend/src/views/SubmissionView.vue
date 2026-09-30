@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import { api, ApiError } from '../api'
 import FlagTable from '../components/FlagTable.vue'
 import HazardCard from '../components/HazardCard.vue'
+import HistoryTimeline from '../components/HistoryTimeline.vue'
+import ReviewPanel from '../components/ReviewPanel.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import {
   formatConfidence,
@@ -18,6 +20,9 @@ const props = defineProps<{ id: string }>()
 
 const status = ref<SubmissionStatus | null>(null)
 const entry = ref<DecisionLogEntry | null>(null)
+const history = ref<DecisionLogEntry[]>([])
+const route = useRoute()
+const router = useRouter()
 const loading = ref(true)
 const error = ref<string | null>(null)
 
@@ -25,9 +30,14 @@ async function load() {
   loading.value = true
   error.value = null
   try {
-    const [s, d] = await Promise.all([api.getSubmission(props.id), api.getDecision(props.id)])
+    const [s, d, h] = await Promise.all([
+      api.getSubmission(props.id),
+      api.getDecision(props.id),
+      api.getHistory(props.id),
+    ])
     status.value = s
     entry.value = d
+    history.value = h
   } catch (e) {
     error.value =
       e instanceof ApiError && e.status === 404
@@ -41,6 +51,15 @@ async function load() {
 }
 
 watch(() => props.id, load, { immediate: true })
+
+async function onReviewed() {
+  await load()
+  // Changing the URL also makes the audit banner re-verify the chain with the new entry.
+  await router.replace({ query: { reviewed: '1' } })
+}
+
+const justReviewed = computed(() => route.query.reviewed === '1')
+const awaitingReview = computed(() => status.value?.status === 'referred' && entry.value !== null)
 
 const submission = computed(() => entry.value?.inputs.submission ?? {})
 const memo = computed(() => entry.value?.risk_memo)
@@ -95,6 +114,10 @@ const facts = computed(() => {
     </p>
 
     <template v-else-if="decision && memo">
+      <p v-if="justReviewed && entry.review" class="notice notice--good" role="status">
+        Decision recorded by {{ entry.review.reviewer }} and added to the audit log.
+      </p>
+      <ReviewPanel v-if="awaitingReview" :submission-id="status.submission_id" @reviewed="onReviewed" />
       <div class="grid">
         <section class="card">
           <header class="card__header">
@@ -157,10 +180,19 @@ const facts = computed(() => {
         <HazardCard :enrichment="entry.inputs.enrichment ?? []" />
       </div>
 
+      <section v-if="history.length > 1" class="card">
+        <header class="card__header">
+          <h2>History</h2>
+          <span class="muted small">Every entry stays in the audit chain</span>
+        </header>
+        <HistoryTimeline :entries="history" />
+      </section>
+
       <section class="card">
         <header class="card__header"><h2>Audit record</h2></header>
         <dl class="facts facts--inline">
           <div><dt>Logged</dt><dd>{{ formatDateTime(entry.created_at) }}</dd></div>
+          <div v-if="entry.review"><dt>Reviewed by</dt><dd>{{ entry.review.reviewer }}</dd></div>
           <div><dt>Model version</dt><dd class="mono small">{{ entry.model_version }}</dd></div>
           <div><dt>Rules version</dt><dd class="mono small">{{ entry.rules_version }}</dd></div>
           <div v-for="(v, k) in entry.prompt_versions" :key="k">

@@ -42,6 +42,7 @@ class DecisionLogRow(Base):
     inputs_json: Mapped[str] = mapped_column(Text)
     prompt_versions_json: Mapped[str] = mapped_column(Text)
     llm_review_raw_json: Mapped[str | None] = mapped_column(Text)
+    review_json: Mapped[str | None] = mapped_column(Text)  # underwriter review (Phase 8)
     # unique: two rows claiming the same predecessor would fork the chain
     prev_hash: Mapped[str] = mapped_column(String(64), unique=True)
     entry_hash: Mapped[str] = mapped_column(String(64), unique=True)
@@ -74,8 +75,25 @@ def _set_aside_legacy_log(sync_conn) -> None:
     log.warning("legacy_decision_log_renamed", table=legacy)
 
 
+# Nullable columns added after Phase 5, applied in place to an existing chained log. Old rows
+# keep NULL, and entry_hash leaves an empty review out, so their hashes still verify.
+_ADDED_COLUMNS = {"review_json": "TEXT"}
+
+
+def _add_missing_columns(sync_conn) -> None:
+    inspector = inspect(sync_conn)
+    if "decision_log" not in inspector.get_table_names():
+        return
+    existing = {c["name"] for c in inspector.get_columns("decision_log")}
+    for name, sql_type in _ADDED_COLUMNS.items():
+        if name not in existing:
+            sync_conn.exec_driver_sql(f"ALTER TABLE decision_log ADD COLUMN {name} {sql_type}")
+            log.info("decision_log_column_added", column=name)
+
+
 async def init_db(engine: AsyncEngine) -> None:
     """Create tables if they do not exist. Fine for local SQLite; use migrations for SQL Server."""
     async with engine.begin() as conn:
         await conn.run_sync(_set_aside_legacy_log)
+        await conn.run_sync(_add_missing_columns)
         await conn.run_sync(Base.metadata.create_all)
