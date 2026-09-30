@@ -29,7 +29,7 @@ from underwriting_agent.tools import (
     loss_history_mock,
     property_data_mock,
 )
-from underwriting_agent.utils import utcnow
+from underwriting_agent.utils import prompt_version, utcnow
 
 log = structlog.get_logger()
 
@@ -178,6 +178,7 @@ Return one JSON object with exactly these keys:
 
 Recommend "refer" whenever any flag (yours or the rules') is a caution, or when you are unsure. \
 Use an empty flags list when nothing applies."""
+RISK_PROMPT_VERSION = prompt_version(RISK_SYSTEM_PROMPT)
 
 
 def _allowed_source_fields(enrichment: list[EnrichmentResult]) -> set[str]:
@@ -272,4 +273,5 @@ async def risk_assessment_agent(
             rationale=review.rationale,
         ),
         rejected_flags=rejected,
+        raw_review=reply.data,
     )

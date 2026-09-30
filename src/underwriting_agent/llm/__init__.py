@@ -5,6 +5,15 @@ from underwriting_agent.llm.client import (
     LLMReply,
     ProviderClient,
     build_llm,
+    build_provider,
 )
 
-__all__ = ["LLM", "FallbackLLM", "LLMError", "LLMReply", "ProviderClient", "build_llm"]
+__all__ = [
+    "LLM",
+    "FallbackLLM",
+    "LLMError",
+    "LLMReply",
+    "ProviderClient",
+    "build_llm",
+    "build_provider",
+]

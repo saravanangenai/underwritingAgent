@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -26,3 +26,5 @@ class RiskMemo(BaseModel):
     assessed_by: str = "rules"  # "rules", or the provider/model of the LLM assessment
     recommendation: Recommendation | None = None
     rejected_flags: list[str] = []  # LLM flags dropped by validation, kept for the audit trail
+    # The LLM's reply before validation. Copied into the audit record, not shown in the memo.
+    raw_review: dict[str, Any] | None = Field(default=None, exclude=True)

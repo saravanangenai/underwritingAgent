@@ -2,29 +2,58 @@
 
 Each case in cases.json has the decision a careful underwriter would make. "rules" cases are
 decided by the deterministic rules; "judgment" cases need judgment the rules do not encode,
-which is where the LLM risk review should add value. Hazard data is fixed per case, so runs
-never call Apify.
+which is where the LLM risk review should add value (some judgment cases expect approval, to
+catch over-referral). Hazard data is fixed per case, so runs never call Apify.
 
-    uv run python -m underwriting_agent.evals          # rules only (free)
-    uv run python -m underwriting_agent.evals --llm    # rules + LLM review (uses your LLM keys)
+Year and date fields may be templates resolved at load time, so labels stay true as time
+passes: "{year-24}" is 24 years before the current year and "{date+60}" is 60 days from today.
+
+    uv run python -m underwriting_agent.evals                   # rules only (free)
+    uv run python -m underwriting_agent.evals --llm             # rules + LLM review
+    uv run python -m underwriting_agent.evals --llm --repeat 3  # also measure consistency
+    uv run python -m underwriting_agent.evals --llm --save      # scorecard to eval-results/
+    uv run python -m underwriting_agent.evals --gate            # exit 1 on a regression (CI)
+    uv run python -m underwriting_agent.evals --compare groq,gemini --pace 20
+                                          # each provider alone: accuracy, latency, tokens
 """
 
+import asyncio
 import json
-from dataclasses import dataclass
+import re
+import statistics
+from collections import Counter
+from dataclasses import asdict, dataclass
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
 from underwriting_agent.graph.orchestrator import run_pipeline
-from underwriting_agent.llm import LLM
+from underwriting_agent.llm import LLM, LLMReply
 from underwriting_agent.schemas import EnrichmentResult, Submission
 from underwriting_agent.tools import hazard_apify
 from underwriting_agent.utils import utcnow
 
 CASES_FILE = Path(__file__).parent / "cases.json"
+_TEMPLATE = re.compile(r"^\{(year|date)([+-]\d+)?\}$")
+
+
+def _resolve(value: Any) -> Any:
+    """Resolve "{year-24}" / "{date+60}" templates relative to today (UTC)."""
+    if isinstance(value, dict):
+        return {k: _resolve(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_resolve(v) for v in value]
+    if isinstance(value, str) and (m := _TEMPLATE.match(value)):
+        offset = int(m.group(2) or 0)
+        today = utcnow().date()
+        if m.group(1) == "year":
+            return today.year + offset
+        return (today + timedelta(days=offset)).isoformat()
+    return value
 
 
 def load_cases() -> list[dict[str, Any]]:
-    return json.loads(CASES_FILE.read_text(encoding="utf-8"))
+    return _resolve(json.loads(CASES_FILE.read_text(encoding="utf-8")))
 
 
 class StaticHazard:
@@ -38,6 +67,19 @@ class StaticHazard:
         return EnrichmentResult(source=hazard_apify.SOURCE, data=data, retrieved_at=utcnow())
 
 
+class MeteredLLM:
+    """Wraps an LLM and keeps every reply, so a case can report latency and tokens."""
+
+    def __init__(self, llm: LLM):
+        self.llm = llm
+        self.replies: list[LLMReply] = []
+
+    async def complete_json(self, system: str, user: str) -> LLMReply:
+        reply = await self.llm.complete_json(system, user)
+        self.replies.append(reply)
+        return reply
+
+
 @dataclass
 class CaseResult:
     id: str
@@ -48,6 +90,10 @@ class CaseResult:
     assessed_by: str
     confidence: float | None
     rejected_flags: list[str]
+    provider: str = "-"  # which provider answered the risk review
+    latency_seconds: float | None = None
+    tokens: int | None = None  # prompt + completion, as reported by the provider
+    retries: int = 0
 
     @property
     def correct(self) -> bool:
@@ -60,13 +106,18 @@ class CaseResult:
 
 
 async def run_case(case: dict[str, Any], llm: LLM | None = None) -> CaseResult:
+    meter = MeteredLLM(llm) if llm is not None else None
     result = await run_pipeline(
         case["submission"],
         f"EVAL-{case['id']}",
         hazard=StaticHazard(case["hazard"]),
-        risk_llm=llm,
+        risk_llm=meter,
     )
     memo = result.risk_memo
+    reply = meter.replies[-1] if meter and meter.replies else None
+    tokens = None
+    if reply and reply.prompt_tokens is not None:
+        tokens = reply.prompt_tokens + (reply.completion_tokens or 0)
     return CaseResult(
         id=case["id"],
         kind=case["kind"],
@@ -76,14 +127,34 @@ async def run_case(case: dict[str, Any], llm: LLM | None = None) -> CaseResult:
         assessed_by=memo.assessed_by if memo else "-",
         confidence=result.decision.confidence if result.decision else None,
         rejected_flags=memo.rejected_flags if memo else [],
+        provider=reply.provider if reply else "-",
+        latency_seconds=reply.latency_seconds if reply else None,
+        tokens=tokens,
+        retries=reply.retries if reply else 0,
     )
 
 
 async def run_eval(
-    llm: LLM | None = None, cases: list[dict[str, Any]] | None = None
+    llm: LLM | None = None,
+    cases: list[dict[str, Any]] | None = None,
+    pace_seconds: float = 0,
 ) -> list[CaseResult]:
-    # Sequential on purpose: keeps LLM rate limits happy and the output in order.
-    return [await run_case(case, llm) for case in (cases or load_cases())]
+    """Run cases in order. Sequential on purpose, and `pace_seconds` between cases keeps
+    free-tier rate limits (e.g. Groq's tokens per minute) from skewing a comparison."""
+    results = []
+    for i, case in enumerate(cases or load_cases()):
+        if i and pace_seconds:
+            await asyncio.sleep(pace_seconds)
+        results.append(await run_case(case, llm))
+    return results
+
+
+async def compare_providers(
+    llms: dict[str, LLM], cases: list[dict[str, Any]] | None = None, pace_seconds: float = 0
+) -> dict[str, list[CaseResult]]:
+    """Run the same cases through each provider alone (no fallback), one provider at a time."""
+    cases = cases or load_cases()
+    return {name: await run_eval(llm, cases, pace_seconds) for name, llm in llms.items()}
 
 
 def summarize(results: list[CaseResult]) -> dict[str, Any]:
@@ -100,4 +171,102 @@ def summarize(results: list[CaseResult]) -> dict[str, Any]:
         ),
         "llm_fallbacks": sum(r.assessed_by == "rules" for r in results),
         "rejected_llm_flags": sum(len(r.rejected_flags) for r in results),
+        **_answered(results, share),
+        **_speed(results),
     }
+
+
+def _answered(results: list[CaseResult], share) -> dict[str, Any]:
+    """Accuracy on the cases the LLM actually answered, so outages are not scored as mistakes.
+
+    Empty for rules-only runs, where no case is answered by an LLM.
+    """
+    answered = [r for r in results if r.assessed_by != "rules"]
+    if not answered:
+        return {}
+    return {
+        "llm_answered": f"{len(answered)}/{len(results)}",
+        "accuracy_answered": share(answered),
+        "unsafe_answered": sum(r.unsafe for r in answered),
+    }
+
+
+def _speed(results: list[CaseResult]) -> dict[str, Any]:
+    """Latency and token stats over the cases the LLM answered; empty for rules-only runs."""
+    latencies = sorted(r.latency_seconds for r in results if r.latency_seconds is not None)
+    if not latencies:
+        return {}
+    tokens = [r.tokens for r in results if r.tokens is not None]
+    p90 = latencies[min(len(latencies) - 1, round(0.9 * (len(latencies) - 1)))]
+    return {
+        "median_latency_s": round(statistics.median(latencies), 2),
+        "p90_latency_s": round(p90, 2),
+        "avg_tokens": round(statistics.mean(tokens)) if tokens else None,
+        "retries": sum(r.retries for r in results),
+    }
+
+
+def consistency(runs: list[list[CaseResult]]) -> dict[str, Any]:
+    """How often each case got the same decision across repeated runs."""
+    by_case: dict[str, list[str]] = {}
+    for run in runs:
+        for r in run:
+            by_case.setdefault(r.id, []).append(r.actual)
+    unstable = {
+        case_id: dict(Counter(actions))
+        for case_id, actions in by_case.items()
+        if len(set(actions)) > 1
+    }
+    return {
+        "runs": len(runs),
+        "stable_cases": f"{len(by_case) - len(unstable)}/{len(by_case)}",
+        "unstable": unstable,
+    }
+
+
+def gate_failures(results: list[CaseResult], llm_used: bool) -> list[str]:
+    """Results that should fail the gate.
+
+    Rules only (CI): any wrong rules case is a regression, since the rules are deterministic.
+    Judgment misses are the known gap, not a regression.
+
+    With an LLM: any unsafe approval, and any case that should have been declined but was
+    not. Over-referrals (an approve case sent for review) are extra caution, not a safety
+    failure; `summarize` and `consistency` report them instead.
+    """
+    if not llm_used:
+        return [
+            f"{r.id}: expected {r.expected}, got {r.actual}"
+            for r in results
+            if r.kind == "rules" and not r.correct
+        ]
+    failures = [f"{r.id}: unsafe approval" for r in results if r.unsafe]
+    failures += [
+        f"{r.id}: expected auto_decline, got {r.actual}"
+        for r in results
+        if r.expected == "auto_decline" and r.actual not in {"auto_decline", "auto_approve"}
+    ]
+    return failures
+
+
+def save_scorecard(
+    runs: list[list[CaseResult]], meta: dict[str, Any], out_dir: Path = Path("eval-results")
+) -> Path:
+    """Write one JSON scorecard, so runs can be compared over time."""
+    from underwriting_agent import rules
+    from underwriting_agent.agents.risk_assessment import RISK_PROMPT_VERSION
+
+    stamp = utcnow().strftime("%Y%m%dT%H%M%SZ")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{stamp}-{meta.get('mode', 'rules')}.json"
+    card = {
+        **meta,
+        "created_at": utcnow().isoformat() + "Z",
+        "rules_version": rules.RULES_VERSION,
+        "risk_prompt_version": RISK_PROMPT_VERSION,
+        "summary": [summarize(run) for run in runs],
+        "consistency": consistency(runs),
+        "cases": [[asdict(r) for r in run] for run in runs],
+    }
+    path.write_text(json.dumps(card, indent=2) + "\n", encoding="utf-8")
+    return path

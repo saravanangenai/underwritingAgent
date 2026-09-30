@@ -28,6 +28,37 @@ A Postman collection with every sample, the lookups and the error cases (each wi
 assertions) is in `postman/underwriting-agent.postman_collection.json`. Import it and run
 the folders in order.
 
+## Underwriter workbench (Phase 7)
+
+A Vue 3 + Vite + TypeScript app in `frontend/` for the people who act on referrals. Start the
+API as above, then in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev          # http://localhost:5173
+```
+
+- **Queue** (`/`): submissions newest first, filterable by status (the filter and page are in
+  the URL), with address, status, non-info flags, confidence and which model assessed each.
+- **Submission** (`/submissions/:id`): the decision and rationale; every flag with its
+  severity, whether a rule or the LLM raised it and the field it cites; the LLM memo and
+  recommendation; rejected LLM flags; FEMA hazard data with top perils; and the audit record
+  (model and rules versions, prompt versions, hash chain).
+- **New submission** (`/new`): a structured form or pasted ACORD text. Missing fields come back
+  as a list; a decided submission opens its detail page.
+- **Audit banner**: every page checks `/audit/verify` and turns red if the chain is broken.
+
+The workbench reads `GET /submissions` (added in this phase: `status`, `limit` up to 200 and
+`offset`). Point it at another API with `VITE_API_URL` in `frontend/.env.local`; the API must
+list the workbench's origin in `CORS_ORIGINS`. The toolchain is pinned to versions that run on
+Node 18 (Vite 5, Vitest 2); on Node 20.19+ it can move to Vite 8.
+
+```bash
+npm test             # component and API-client tests (the API is mocked)
+npm run build        # type-check with vue-tsc, then a production build in dist/
+```
+
 ## Pipeline
 
 ```
@@ -91,7 +122,7 @@ overall risk score and a recommendation with a confidence.
 | HS-001 | code | Roof older than 25 years (hard stop) |
 | SR-010 / SR-011 / SR-012 | code | Pool / 2+ claims / trampoline |
 | HZ-001 / HZ-002 | code | Composite hazard 70+ / hazard data unavailable |
-| UW-101 | LLM | Coverage A implausible for the property |
+| UW-101 | LLM | Coverage A below $100,000 or above $5,000,000, or clearly contradicting other data |
 | UW-102 | LLM | Effective date in the past or over 12 months out |
 | UW-103 | LLM | A single peril Very High though the composite is below the cutoff |
 | UW-104 | LLM | Within 1 mile of the coast |
@@ -99,23 +130,104 @@ overall risk score and a recommendation with a confidence.
 
 ## Evaluation set
 
-`src/underwriting_agent/evals/cases.json` holds 20 synthetic submissions labelled with the
-decision a careful underwriter would make: 14 the rules decide, and 6 "judgment" cases the
-rules cannot see. Hazard data is fixed per case, so no Apify calls are made.
+`src/underwriting_agent/evals/cases.json` holds 38 synthetic submissions labelled with the
+decision a careful underwriter would make: 24 the rules decide (including boundaries such as
+a roof exactly 25 years old and a hazard score of exactly 70), and 14 "judgment" cases the
+rules cannot see. Ten judgment cases should be referred; four should be approved, to catch an
+over-cautious LLM. Hazard data is fixed per case, so no Apify calls are made. Year and date
+fields are templates (`{year-24}`, `{date+60}`) resolved against today, so labels stay true.
 
 ```bash
-uv run python -m underwriting_agent.evals          # rules only (free)
-uv run python -m underwriting_agent.evals --llm    # rules + LLM review (uses your LLM keys)
+uv run python -m underwriting_agent.evals                   # rules only (free)
+uv run python -m underwriting_agent.evals --llm             # rules + LLM review
+uv run python -m underwriting_agent.evals --llm --repeat 3  # also measure consistency
+uv run python -m underwriting_agent.evals --llm --save      # scorecard to eval-results/
+uv run python -m underwriting_agent.evals --gate            # exit 1 on a regression
 ```
 
-| Run | Accuracy | Judgment cases | Unsafe approvals |
-| --- | --- | --- | --- |
-| Rules only | 14/20 | 0/6 | 6 |
-| Rules + LLM (Groq `openai/gpt-oss-120b`, 2026-09-29) | 20/20 | 6/6 | 0 |
+Results on 2026-09-29 (LLM runs used Groq `openai/gpt-oss-120b`, with Gemini as fallback):
 
-"Unsafe approvals" counts cases approved that should have been referred or declined. The
-labels are synthetic judgments; review them before relying on the scores, and add cases as
-you find disagreements.
+| Run | Accuracy | Judgment cases | Unsafe approvals | Over-referrals |
+| --- | --- | --- | --- | --- |
+| Rules only | 28/38 | 4/14 | 10 | 0 |
+| Rules + LLM, run 1 | 38/38 | 14/14 | 0 | 0 |
+| Rules + LLM, run 2 | 38/38 | 14/14 | 0 | 0 |
+| Rules + LLM, run 3 | 35/38 | 14/14 | 0 | 3 |
+
+- **Unsafe approvals** are cases approved that should have been referred or declined: 0 in all
+  114 LLM decisions.
+- **Consistency:** 35 of 38 cases got the same decision in all three runs. A3, A6 and B1 were
+  referred once each under UW-101 (implausible Coverage A); with no square footage in the
+  input, the LLM's view of a plausible limit varied. UW-101 was then bounded to Coverage A
+  below $100,000 or above $5,000,000 (rules `2026-09-phase5`). The next run scored 38/38 with
+  A3, A6 and B1 approved; runs 2 and 3 were stopped when the free-tier quotas ran out, so
+  re-run `--repeat 3` to confirm stability.
+- **Free-tier limits:** Groq allows 8,000 tokens per minute (about 3-4 risk reviews a minute)
+  and Gemini's free quota ran out after a day of evaluation runs, so large runs are slow and
+  may fall back to rules. Fallbacks are counted in `llm_fallbacks`.
+- **The gate** fails rules-only runs on any wrong rules case (that is what CI runs), and LLM
+  runs on any unsafe approval or missed decline. Over-referrals are reported, not failed,
+  because they add caution rather than risk.
+- The scorecard for these runs is in `eval-results/`. The labels are synthetic judgments;
+  review them before relying on the scores, and add cases as you find disagreements.
+
+## Provider comparison (Phase 6)
+
+Run the same cases through each provider **alone** (no fallback) and compare accuracy, safety,
+speed and token use side by side:
+
+```bash
+uv run python -m underwriting_agent.evals --compare groq,gemini --pace 20 --save
+uv run python -m underwriting_agent.evals --provider gemini          # one provider only
+```
+
+- Every LLM reply now records `latency_seconds` (including retry waits), prompt and completion
+  tokens as reported by the provider, and the number of retries.
+- The summary adds `median_latency_s`, `p90_latency_s`, `avg_tokens` and `retries`, plus
+  `llm_answered`, `accuracy_answered` and `unsafe_answered`. A case the provider could not
+  answer (rate limit, outage) falls back to the rules and is marked `n/a`, so outages are
+  reported as availability, not scored as the provider's mistakes.
+- `--pace` waits between cases so free-tier rate limits do not skew the comparison. Groq's free
+  tier allows 8,000 tokens per minute and one review uses about 1,400-2,000, so use 20 seconds;
+  a full 38-case comparison of two providers then takes about 30 minutes.
+- Choose the winner with `LLM_PROVIDERS` in `.env`, fastest safe provider first.
+
+First measurement (2026-09-29, both free tiers nearly exhausted after a day of evaluations):
+Groq answered 1 of 4 cases in 2.0 s using 1,418 tokens; Gemini answered none (daily quota
+used up). Re-run the full comparison after the quotas reset (Groq requests hourly, Gemini
+daily at midnight Pacific).
+
+## Audit log (Phase 5)
+
+Every decision is appended to `decision_log` with everything needed to replay and explain it:
+
+- `inputs`: the submission and enrichment exactly as the agents saw them.
+- `prompt_versions`: short hashes of the ACORD and risk-review system prompts in force.
+- `llm_review_raw`: the LLM's risk reply before validation (so rejected flags can be audited).
+- `model_version` and `rules_version`, as before.
+
+The log is **hash chained**. Each entry's `entry_hash` is a SHA-256 over its content and the
+previous entry's hash (`prev_hash`; the first entry points at 64 zeros). Changing, removing or
+reordering any entry breaks the chain from that point on:
+
+```bash
+curl localhost:8000/audit/verify
+# {"ok": true, "entries_checked": 42, "first_bad_entry_id": null, "reason": null}
+```
+
+This makes tampering **detectable**, not impossible: someone with write access could rebuild
+the whole chain. For stronger guarantees, periodically record the latest `entry_hash`
+somewhere the database admins cannot change (a signed log, a ticket, object-lock storage).
+
+A database from before Phase 5 has no hash columns. On startup its `decision_log` table is
+renamed to `decision_log_legacy_<timestamp>` (nothing is deleted) and a new chained log starts.
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request: `ruff check`,
+`ruff format --check`, the test suite, and the rules-only evaluation gate
+(`python -m underwriting_agent.evals --gate`), which fails if any rules case regresses. It needs
+no secrets: tests use fakes, and the gate uses no LLM or Apify.
 
 ## LLM providers
 
@@ -152,14 +264,16 @@ HZ-001 cutoff of 70. The other synthetic addresses do not geocode, so they also 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | POST | `/underwrite` | Run the pipeline, return decision, risk memo and enrichment |
+| GET | `/submissions` | Queue: newest first, `status` filter, `limit`/`offset` paging |
 | GET | `/submissions/{id}` | Stored submission and current status |
 | GET | `/submissions/{id}/decision` | Audit record for the decision |
+| GET | `/audit/verify` | Recompute the decision log's hash chain |
 | GET | `/health` | Liveness check |
 
 ## Develop
 
 ```bash
-uv run pytest        # 94 tests; fakes only, never calls an LLM, the geocoder or Apify
+uv run pytest        # 124 tests; fakes only, never calls an LLM, the geocoder or Apify
 uv run ruff check .  # lint
 uv run ruff format . # format
 ```
@@ -174,6 +288,7 @@ src/underwriting_agent/
   llm/            provider client (OpenAI-compatible) and ordered fallback
   tools/          hazard_apify (live FEMA NRI via Apify MCP) and mocked data sources
   graph/          builder.py (LangGraph StateGraph), orchestrator.py runs it
+frontend/         Vue 3 underwriter workbench (see above)
   schemas/        Pydantic models shared across agents and the API
   persistence/    SQLAlchemy async models and repository (SQLite)
   samples/        synthetic submissions
@@ -198,7 +313,9 @@ src/underwriting_agent/
 1. Phase 1: schemas, API, SQLite, stubbed agents
 2. Phase 2: Groq/Gemini/OpenAI client with fallback; Intake reads raw ACORD text
 3. Phase 3: LangGraph `StateGraph` with `Send` fan-out; live Apify hazard MCP
-4. Phase 4 (this): LLM risk assessment and triage with citations, guardrails and an eval set
-5. Decision log hardening and an evaluation set
-6. Provider comparison
-7. React underwriter workbench (CORS for `localhost:5173` is already enabled)
+4. Phase 4: LLM risk assessment and triage with citations, guardrails and an eval set
+5. Phase 5: hash-chained, replayable decision log; CI; larger eval set with consistency runs
+6. Phase 6: provider comparison with latency, tokens, pacing and availability
+7. Phase 7 (this): Vue underwriter workbench (Vue 3 + Vite + TypeScript in `frontend/`): queue,
+   submission detail with cited flags and audit record, new-submission form, audit banner;
+   `GET /submissions` list endpoint

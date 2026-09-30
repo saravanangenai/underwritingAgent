@@ -129,6 +129,7 @@ def build_graph(
             state["risk_memo"],
             state["decision"],
             intake_model=state.get("intake_model"),
+            enrichment=sorted(state["enrichment"], key=lambda r: r.source),
         )
         log.info("agent_completed", agent="compliance", submission_id=state["submission_id"])
         return {"log_entry": entry}

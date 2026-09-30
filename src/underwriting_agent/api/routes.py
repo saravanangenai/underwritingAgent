@@ -2,7 +2,7 @@ import uuid
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,8 +12,10 @@ from underwriting_agent.llm import LLMError
 from underwriting_agent.persistence import repository as repo
 from underwriting_agent.samples import SAMPLE_NAMES, load_sample
 from underwriting_agent.schemas import (
+    AuditVerification,
     DecisionLogEntry,
     NeedsMoreInfoResponse,
+    SubmissionPage,
     SubmissionStatus,
     UnderwriteResponse,
 )
@@ -98,6 +100,22 @@ async def underwrite(
     )
 
 
+SUBMISSION_STATUSES = ("running", "completed", "referred", "declined", "needs_more_info", "failed")
+
+
+@router.get("/submissions", response_model=SubmissionPage)
+async def list_submissions(
+    status: str | None = Query(None, description=f"One of: {', '.join(SUBMISSION_STATUSES)}"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_session),
+):
+    """Submissions newest first, each with its latest decision summarised (the queue view)."""
+    if status is not None and status not in SUBMISSION_STATUSES:
+        raise HTTPException(status_code=422, detail=f"Unknown status {status!r}")
+    return await repo.list_submissions(session, status=status, limit=limit, offset=offset)
+
+
 @router.get("/submissions/{submission_id}", response_model=SubmissionStatus)
 async def get_submission_status(submission_id: str, session: AsyncSession = Depends(get_session)):
     row = await repo.get_submission(session, submission_id)
@@ -117,3 +135,10 @@ async def get_submission_decision(submission_id: str, session: AsyncSession = De
     if entry is None:
         raise HTTPException(status_code=404, detail="No decision recorded for this submission")
     return entry
+
+
+@router.get("/audit/verify", response_model=AuditVerification)
+async def verify_audit_log(session: AsyncSession = Depends(get_session)):
+    """Recompute the decision log's hash chain. `ok` is false if any entry was edited,
+    removed or reordered, and `first_bad_entry_id` points at the first broken entry."""
+    return await repo.verify_chain(session)
