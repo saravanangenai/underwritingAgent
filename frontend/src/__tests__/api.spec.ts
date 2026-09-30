@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { api, ApiError } from '../api'
+import { api, ApiError, UNAUTHORIZED_EVENT } from '../api'
 
 function mockFetch(status: number, body: unknown) {
   const fetchMock = vi.fn().mockResolvedValue(
@@ -17,7 +17,7 @@ describe('api', () => {
     const fetchMock = mockFetch(200, { items: [], total: 0, limit: 25, offset: 50 })
     await api.listSubmissions({ status: 'referred', limit: 25, offset: 50 })
     expect(fetchMock.mock.calls[0][0]).toBe(
-      'http://localhost:8000/submissions?status=referred&limit=25&offset=50',
+      '/api/submissions?status=referred&limit=25&offset=50',
     )
   })
 
@@ -59,14 +59,33 @@ describe('api', () => {
   it('posts a review and reads the history', async () => {
     const fetchMock = mockFetch(200, [])
     await api.getHistory('SUB 1')
-    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:8000/submissions/SUB%201/history')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/submissions/SUB%201/history')
 
     mockFetch(200, { submission_id: 'SUB-1' })
-    const body = { action: 'approve' as const, note: 'Checked the roof photos.', reviewer: 'A. U.' }
+    const body = { action: 'approve' as const, note: 'Checked the roof photos.' }
     await api.review('SUB-1', body)
     const call = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
-    expect(call[0]).toBe('http://localhost:8000/submissions/SUB-1/review')
+    expect(call[0]).toBe('/api/submissions/SUB-1/review')
     expect(call[1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+  })
+
+  it('sends the session cookie and announces an expired session', async () => {
+    const fetchMock = mockFetch(401, { detail: 'Sign in required' })
+    const heard = vi.fn()
+    window.addEventListener(UNAUTHORIZED_EVENT, heard)
+    await expect(api.listSubmissions()).rejects.toMatchObject({ status: 401 })
+    window.removeEventListener(UNAUTHORIZED_EVENT, heard)
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ credentials: 'same-origin' })
+    expect(heard).toHaveBeenCalledOnce()
+  })
+
+  it('treats 401 from the session check as signed out, without announcing it', async () => {
+    mockFetch(401, { detail: 'Sign in required' })
+    const heard = vi.fn()
+    window.addEventListener(UNAUTHORIZED_EVENT, heard)
+    expect(await api.me()).toBeNull()
+    window.removeEventListener(UNAUTHORIZED_EVENT, heard)
+    expect(heard).not.toHaveBeenCalled()
   })
 
   it('explains an unreachable backend', async () => {

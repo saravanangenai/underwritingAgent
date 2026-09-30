@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Homeowners Underwriting Agent",
-    "description": "Requests for the local FastAPI service. Start it with\n`uv run uvicorn underwriting_agent.api.main:app --reload`, then run the folders in order. Each POST /underwrite saves its submission_id into the `submission_id` collection variable, which the Submissions folder uses.\n\nAll applicants and properties are synthetic.\n\nThe expected outcomes assume mock hazard data: set HAZARD_PROVIDER=mock in .env before starting the server. With live FEMA data (APIFY_TOKEN set), the Clean sample is referred (its real census tract scores above the HZ-001 cutoff), and the synthetic addresses that the Census geocoder cannot place get HZ-002 (hazard data unavailable).",
+    "description": "Requests for the local FastAPI service. Start it with\n`uv run uvicorn underwriting_agent.api.main:app --reload`, then run the folders in order. Each POST /underwrite saves its submission_id into the `submission_id` collection variable, which the Submissions folder uses.\n\nAll applicants and properties are synthetic.\n\nThe expected outcomes assume mock hazard data: set HAZARD_PROVIDER=mock in .env before starting the server. With live FEMA data (APIFY_TOKEN set), the Clean sample is referred (its real census tract scores above the HZ-001 cutoff), and the synthetic addresses that the Census geocoder cannot place get HZ-002 (hazard data unavailable).\n\nSign-in is required (Phase 9). Set the `username` and `password` collection variables to an underwriter or admin account, then run '0. Sign in' first: it stores the session token in `token`, which every other request sends as a bearer token.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -12,9 +12,73 @@
     {
       "key": "submission_id",
       "value": ""
+    },
+    {
+      "key": "username",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
     }
   ],
   "item": [
+    {
+      "name": "0. Sign in",
+      "item": [
+        {
+          "name": "Sign in",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Signs in with the username and password collection variables.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
     {
       "name": "1. Health",
       "item": [
@@ -433,5 +497,15 @@
         }
       ]
     }
-  ]
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
 }

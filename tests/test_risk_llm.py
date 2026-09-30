@@ -169,14 +169,16 @@ async def test_pipeline_passes_the_risk_llm_through():
     assert '"today"' in llm.calls[0][1]
 
 
-def test_api_uses_llm_risk_review_when_enabled(settings):
+def test_api_uses_llm_risk_review_when_enabled(settings, users):
     from fastapi.testclient import TestClient
 
+    from tests.conftest import sign_in
     from underwriting_agent.api.main import create_app
 
     settings.llm_risk_assessment = True
     llm = RoutingLLM(intake=ACORD_EXTRACTION, risk=risk_review("refer", 0.8))
     with TestClient(create_app(settings, llm=llm)) as client:
+        sign_in(client)
         body = client.post("/underwrite", json=load_sample("acord_text")).json()
         logged = client.get(f"/submissions/{body['submission_id']}/decision").json()
     assert body["risk_memo"]["assessed_by"] == "fake/fake-model"

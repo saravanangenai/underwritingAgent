@@ -27,6 +27,7 @@ class SubmissionStatus(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+    submitted_by: str | None = None  # username; None for submissions made before sign-in
 
 
 class SubmissionSummary(BaseModel):
@@ -42,6 +43,7 @@ class SubmissionSummary(BaseModel):
     flags: list[str] = []  # caution and hard-stop rule ids, rules and LLM alike
     assessed_by: str | None = None
     reviewed_by: str | None = None  # underwriter who resolved a referral
+    submitted_by: str | None = None  # username of the underwriter who submitted it
 
 
 class SubmissionPage(BaseModel):

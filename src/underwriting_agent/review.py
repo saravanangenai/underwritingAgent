@@ -26,15 +26,16 @@ REVIEWABLE_STATUSES = {"referred"}
 
 
 def build_review_entry(
-    previous: DecisionLogEntry, request: ReviewRequest, reviewed_at: datetime
+    previous: DecisionLogEntry, request: ReviewRequest, reviewed_at: datetime, reviewer: str
 ) -> DecisionLogEntry:
+    """`reviewer` is the signed-in user, recorded as 'Display Name (username)'."""
     action, _ = REVIEW_OUTCOMES[request.action]
     return DecisionLogEntry(
         submission_id=previous.submission_id,
         decision=TriageDecision(
             action=action,
             confidence=None,  # a person's decision, not a model's
-            rationale=f"Underwriter {request.reviewer}: {request.note}",
+            rationale=f"Underwriter {reviewer}: {request.note}",
             # A quote only makes sense for an approval.
             estimated_premium=(
                 previous.decision.estimated_premium if request.action == "approve" else None
@@ -50,7 +51,7 @@ def build_review_entry(
         review=UnderwriterReview(
             action=request.action,
             note=request.note,
-            reviewer=request.reviewer,
+            reviewer=reviewer,
             reviewed_at=reviewed_at,
             supersedes_entry_hash=previous.entry_hash,
         ),

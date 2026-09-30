@@ -1,4 +1,4 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 
@@ -11,6 +11,7 @@ import { makeRouter } from '../router'
 import type { RiskFlag } from '../types'
 
 afterEach(() => vi.restoreAllMocks())
+enableAutoUnmount(afterEach) // each test's app stops listening for window events
 
 describe('StatusBadge', () => {
   it.each([

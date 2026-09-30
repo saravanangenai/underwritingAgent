@@ -1,13 +1,17 @@
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 
 import { api } from '../api'
+import { session } from '../auth'
 import App from '../App.vue'
 import { makeRouter } from '../router'
-import type { DecisionLogEntry, SubmissionPage } from '../types'
+import type { DecisionLogEntry, SubmissionPage, User } from '../types'
+
+const UMA: User = { username: 'uma', display_name: 'Uma Underwriter', role: 'underwriter', active: true }
 
 afterEach(() => vi.restoreAllMocks())
+enableAutoUnmount(afterEach) // each test's app stops listening for window events
 
 const PAGE: SubmissionPage = {
   total: 1,
@@ -58,7 +62,11 @@ const ENTRY: DecisionLogEntry = {
   entry_hash: 'abcdef0123456789'.repeat(4),
 }
 
-async function mountAt(path: string) {
+async function mountAt(path: string, user: User | null = UMA) {
+  // Each test starts signed out; the router's guard asks the API who is signed in.
+  session.user = null
+  session.checked = false
+  vi.spyOn(api, 'me').mockResolvedValue(user)
   vi.spyOn(api, 'verifyAudit').mockResolvedValue({
     ok: true,
     entries_checked: 1,
@@ -248,7 +256,7 @@ describe('Underwriter review', () => {
     review: {
       action: 'approve',
       note: 'Fence and gate confirmed by photos.',
-      reviewer: 'A. Underwriter',
+      reviewer: 'Uma Underwriter (uma)',
       reviewed_at: '2026-09-29T11:00:00',
       supersedes_entry_hash: ENTRY.entry_hash,
     },
@@ -272,7 +280,6 @@ describe('Underwriter review', () => {
     expect(button().attributes('disabled')).toBeDefined()
     await panel.find('input[value="approve"]').setValue(true)
     await panel.find('textarea').setValue('too short')
-    await panel.find('input[autocomplete="name"]').setValue('A. Underwriter')
     expect(button().attributes('disabled')).toBeDefined()
     await panel.find('textarea').setValue('Fence and gate confirmed by photos.')
     expect(button().attributes('disabled')).toBeUndefined()
@@ -292,22 +299,20 @@ describe('Underwriter review', () => {
     const { app, router } = await mountAt('/submissions/SUB-ABC')
     const panel = app.find('[aria-labelledby="review-heading"]')
     await panel.find('input[value="approve"]').setValue(true)
+    expect(panel.text()).toContain('Recording as Uma Underwriter')
     await panel.find('textarea').setValue('  Fence and gate confirmed by photos.  ')
-    await panel.find('input[autocomplete="name"]').setValue('A. Underwriter')
     await panel.find('form').trigger('submit')
     await flushPromises()
 
     expect(review).toHaveBeenCalledWith('SUB-ABC', {
       action: 'approve',
       note: 'Fence and gate confirmed by photos.',
-      reviewer: 'A. Underwriter',
     })
     expect(router.currentRoute.value.query).toEqual({ reviewed: '1' })
     const text = app.text()
-    expect(text).toContain('Decision recorded by A. Underwriter')
+    expect(text).toContain('Decision recorded by Uma Underwriter (uma)')
     expect(text).not.toContain('Underwriter review') // resolved, so no panel
     expect(app.find('.timeline').text()).toContain('Fence and gate confirmed by photos.')
-    expect(localStorage.getItem('uw.reviewer')).toBe('A. Underwriter')
   })
 
   it('shows the API error when the review is refused', async () => {
@@ -321,7 +326,6 @@ describe('Underwriter review', () => {
     const panel = app.find('[aria-labelledby="review-heading"]')
     await panel.find('input[value="decline"]').setValue(true)
     await panel.find('textarea').setValue('Outside appetite for this territory.')
-    await panel.find('input[autocomplete="name"]').setValue('A. Underwriter')
     await panel.find('form').trigger('submit')
     await flushPromises()
     expect(panel.find('[role="alert"]').text()).toContain('this one is completed')
