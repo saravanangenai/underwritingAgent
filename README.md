@@ -28,6 +28,19 @@ A Postman collection with every sample, the lookups and the error cases (each wi
 assertions) is in `postman/underwriting-agent.postman_collection.json`. Import it and run
 the folders in order.
 
+### Start everything on Windows
+
+`scripts/dev.ps1` starts the API and the workbench in two windows, waits until both answer,
+and opens the workbench in your browser (add `-NoBrowser` to skip that). It checks that `uv`
+and `npm` are installed and that ports 8000 and 5173 are free, and runs `npm install` on the
+first run.
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts\dev.ps1
+```
+
+Close the two server windows to stop.
+
 ## Underwriter workbench (Phase 7)
 
 A Vue 3 + Vite + TypeScript app in `frontend/` for the people who act on referrals. Start the
