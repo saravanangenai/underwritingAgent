@@ -1,0 +1,42 @@
+# Serves the workbench and forwards /api to the API. Caddy obtains and renews the HTTPS
+# certificate for the domain automatically (ports 80 and 443 must be open).
+# install.sh replaces __DOMAIN__ and __EMAIL__ and writes the result to /etc/caddy/Caddyfile.
+{
+	email __EMAIL__
+}
+
+__DOMAIN__ {
+	encode zstd gzip
+
+	# The API, on this machine only. /api/auth/login -> http://127.0.0.1:8000/auth/login
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:8000
+	}
+
+	# The built Vue workbench. Unknown paths fall back to index.html for client-side routes.
+	handle {
+		root * /opt/underwriting-agent/current/web
+		try_files {path} /index.html
+		file_server
+
+		header {
+			Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+			X-Content-Type-Options nosniff
+			Referrer-Policy strict-origin-when-cross-origin
+			Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		}
+		# Hashed build assets never change; index.html must not be cached.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@html path / /index.html
+		header @html Cache-Control "no-cache"
+	}
+
+	header Strict-Transport-Security "max-age=31536000"
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}

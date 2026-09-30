@@ -72,6 +72,25 @@ npm test             # component and API-client tests (the API is mocked)
 npm run build        # type-check with vue-tsc, then a production build in dist/
 ```
 
+## Deploying (Phase 10)
+
+The app runs on one Google Cloud free-tier **e2-micro** VM (1 GB RAM) without Docker: the API as
+a sandboxed systemd service (one uvicorn worker, capped at 384 MB), Caddy serving the workbench
+and proxying `/api` with automatic HTTPS (capped at 128 MB), SQLite on the VM's disk with
+nightly backups, and a 1 GB swap file as a safety net. Measured: the API idles at about
+121 MB and peaked at 138 MB under load; CI re-checks this on every change
+(`deploy/memcheck.py`).
+
+```bash
+uv run python deploy/package.py      # build the release bundle on your computer
+# copy the bundle and deploy/install.sh to the VM, then on the VM:
+sudo bash install.sh <bundle>.tar.gz --email you@example.com
+sudo uw-users create --username you --name "Your Name" --role admin
+```
+
+Step-by-step instructions (creating the VM, keys, updates, rollback, backups and restore) are
+in [deploy/README.md](deploy/README.md).
+
 ## Sign-in and roles (Phase 9)
 
 Everything except `GET /health` requires signing in. Users live in the application database;
@@ -353,7 +372,7 @@ HZ-001 cutoff of 70. The other synthetic addresses do not geocode, so they also 
 ## Develop
 
 ```bash
-uv run pytest        # 171 tests; fakes only, never calls an LLM, the geocoder or Apify
+uv run pytest        # 181 tests; fakes only, never calls an LLM, the geocoder or Apify
 uv run ruff check .  # lint
 uv run ruff format . # format
 ```
@@ -373,6 +392,8 @@ frontend/         Vue 3 underwriter workbench (see above)
   persistence/    SQLAlchemy async models and repository (SQLite)
   samples/        synthetic submissions
   rules.py        guideline thresholds and version stamps
+deploy/            production deployment: install.sh, systemd units, Caddyfile, backups,
+                  package.py (release bundle), memcheck.py (memory budget)
 ```
 
 ## Notes
@@ -401,6 +422,7 @@ frontend/         Vue 3 underwriter workbench (see above)
    `GET /submissions` list endpoint
 8. Phase 8: underwriter review of referrals (approve, decline, request info) with
    notes, appended to the audit chain; submission history
-9. Phase 9 (this): sign-in, sessions and roles (viewer, underwriter, admin); users page;
+9. Phase 9: sign-in, sessions and roles (viewer, underwriter, admin); users page;
    reviews and submissions attributed to the signed-in user
-10. Next: deploy to a Google Cloud free-tier VM (Docker Compose, Caddy with HTTPS, backups)
+10. Phase 10 (this): deploy to a Google Cloud free-tier e2-micro without Docker (systemd, Caddy
+    with HTTPS, nightly backups, release bundles, 1 GB memory budget checked in CI)

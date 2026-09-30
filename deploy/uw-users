@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Manage workbench users on the server, with the same settings and user as the API service.
+#
+#   sudo uw-users create --username ada --name "Ada L" --role admin
+#   sudo uw-users list
+#   sudo uw-users set-password --username ada
+#   sudo uw-users deactivate --username ada
+#
+# systemd-run reads /etc/underwriting-agent/api.env exactly as the service does, and runs as the
+# service user, so the database stays owned by that user. --pty keeps the password prompt hidden.
+set -euo pipefail
+[[ $EUID -eq 0 ]] || { echo "run with sudo" >&2; exit 1; }
+exec systemd-run --quiet --pty --wait --collect \
+  -p User=underwriting -p Group=underwriting \
+  -p EnvironmentFile=/etc/underwriting-agent/api.env \
+  -p WorkingDirectory=/opt/underwriting-agent/current \
+  /opt/underwriting-agent/current/.venv/bin/python -m underwriting_agent.auth "$@"
