@@ -56,6 +56,19 @@ describe('api', () => {
     expect(await api.getDecision('SUB-3')).toBeNull()
   })
 
+  it('posts a review and reads the history', async () => {
+    const fetchMock = mockFetch(200, [])
+    await api.getHistory('SUB 1')
+    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:8000/submissions/SUB%201/history')
+
+    mockFetch(200, { submission_id: 'SUB-1' })
+    const body = { action: 'approve' as const, note: 'Checked the roof photos.', reviewer: 'A. U.' }
+    await api.review('SUB-1', body)
+    const call = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(call[0]).toBe('http://localhost:8000/submissions/SUB-1/review')
+    expect(call[1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+  })
+
   it('explains an unreachable backend', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
     const error = await api.verifyAudit().catch((e: unknown) => e)

@@ -637,3 +637,92 @@ a:focus-visible {
 .nowrap {
   white-space: nowrap;
 }
+
+/* ---- underwriter review ---- */
+
+.card--accent {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.choice > span {
+  display: grid;
+}
+
+.choice input {
+  width: auto;
+  margin-top: 3px;
+}
+
+.choice.is-selected {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.text-warn {
+  color: var(--warn);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.timeline {
+  margin: 0;
+  padding: 0 0 0 16px;
+  border-left: 2px solid var(--border);
+  list-style: none;
+}
+
+.timeline__item {
+  position: relative;
+  padding: 0 0 16px 12px;
+}
+
+.timeline__item::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: -23px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.timeline__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.timeline__body {
+  margin: 6px 0 2px;
+}
+
+.timeline__item p.mono {
+  margin: 0;
+}

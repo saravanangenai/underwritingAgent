@@ -15,6 +15,7 @@ from underwriting_agent.schemas import (
     SubmissionPage,
     SubmissionSummary,
     TriageDecision,
+    UnderwriterReview,
 )
 from underwriting_agent.utils import utcnow
 
@@ -111,6 +112,10 @@ async def list_submissions(
             summary.confidence = decision.confidence
             summary.flags = [f.rule_id for f in memo.flags if f.severity != "info"]
             summary.assessed_by = memo.assessed_by
+            if decision.review_json:
+                summary.reviewed_by = UnderwriterReview.model_validate_json(
+                    decision.review_json
+                ).reviewer
         items.append(summary)
     return SubmissionPage(items=items, total=total, limit=limit, offset=offset)
 
@@ -120,7 +125,10 @@ async def list_submissions(
 
 def entry_hash(entry: DecisionLogEntry, prev_hash: str) -> str:
     """SHA-256 over the previous hash and a canonical JSON form of the entry's content."""
-    content = entry.model_dump(mode="json", exclude={"prev_hash", "entry_hash"})
+    exclude = {"prev_hash", "entry_hash"}
+    if entry.review is None:
+        exclude.add("review")  # entries hashed before reviews existed have no such key
+    content = entry.model_dump(mode="json", exclude=exclude)
     canonical = json.dumps(content, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(f"{prev_hash}\n{canonical}".encode()).hexdigest()
 
@@ -141,6 +149,7 @@ def _row_to_entry(row: DecisionLogRow) -> DecisionLogEntry:
         inputs=json.loads(row.inputs_json),
         prompt_versions=json.loads(row.prompt_versions_json),
         llm_review_raw=json.loads(row.llm_review_raw_json) if row.llm_review_raw_json else None,
+        review=UnderwriterReview.model_validate_json(row.review_json) if row.review_json else None,
         prev_hash=row.prev_hash,
         entry_hash=row.entry_hash,
     )
@@ -178,6 +187,7 @@ async def save_decision(session: AsyncSession, entry: DecisionLogEntry) -> Decis
                 llm_review_raw_json=(
                     json.dumps(entry.llm_review_raw) if entry.llm_review_raw is not None else None
                 ),
+                review_json=entry.review.model_dump_json() if entry.review else None,
                 prev_hash=prev,
                 entry_hash=digest,
             )
@@ -195,6 +205,16 @@ async def get_decision(session: AsyncSession, submission_id: str) -> DecisionLog
     )
     row = result.scalar_one_or_none()
     return _row_to_entry(row) if row else None
+
+
+async def get_history(session: AsyncSession, submission_id: str) -> list[DecisionLogEntry]:
+    """Every audit entry for one submission, oldest first."""
+    result = await session.execute(
+        select(DecisionLogRow)
+        .where(DecisionLogRow.submission_id == submission_id)
+        .order_by(DecisionLogRow.id)
+    )
+    return [_row_to_entry(row) for row in result.scalars()]
 
 
 async def verify_chain(session: AsyncSession) -> AuditVerification:

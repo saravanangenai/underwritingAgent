@@ -10,15 +10,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from underwriting_agent.graph.orchestrator import run_pipeline
 from underwriting_agent.llm import LLMError
 from underwriting_agent.persistence import repository as repo
+from underwriting_agent.review import REVIEW_OUTCOMES, REVIEWABLE_STATUSES, build_review_entry
 from underwriting_agent.samples import SAMPLE_NAMES, load_sample
 from underwriting_agent.schemas import (
     AuditVerification,
     DecisionLogEntry,
     NeedsMoreInfoResponse,
+    ReviewRequest,
     SubmissionPage,
     SubmissionStatus,
     UnderwriteResponse,
 )
+from underwriting_agent.utils import utcnow
 
 log = structlog.get_logger()
 router = APIRouter()
@@ -142,3 +145,55 @@ async def verify_audit_log(session: AsyncSession = Depends(get_session)):
     """Recompute the decision log's hash chain. `ok` is false if any entry was edited,
     removed or reordered, and `first_bad_entry_id` points at the first broken entry."""
     return await repo.verify_chain(session)
+
+
+@router.get("/submissions/{submission_id}/history", response_model=list[DecisionLogEntry])
+async def get_submission_history(submission_id: str, session: AsyncSession = Depends(get_session)):
+    """Every audit entry for the submission, oldest first: the automated decision, then any
+    underwriter review."""
+    if await repo.get_submission(session, submission_id) is None:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    return await repo.get_history(session, submission_id)
+
+
+@router.post(
+    "/submissions/{submission_id}/review",
+    response_model=DecisionLogEntry,
+    responses={
+        404: {"description": "Submission not found"},
+        409: {"description": "The submission is not waiting for an underwriter"},
+    },
+)
+async def review_submission(
+    submission_id: str,
+    body: ReviewRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Record an underwriter's decision on a referred submission.
+
+    Appends a new entry to the decision log (the automated decision stays in the chain) and
+    moves the submission to completed, declined or needs_more_info.
+    """
+    row = await repo.get_submission(session, submission_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    if row.status not in REVIEWABLE_STATUSES:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Only referred submissions can be reviewed; this one is {row.status}",
+        )
+    previous = await repo.get_decision(session, submission_id)
+    if previous is None:
+        raise HTTPException(status_code=409, detail="No decision recorded to review")
+
+    entry = await repo.save_decision(session, build_review_entry(previous, body, utcnow()))
+    _, status = REVIEW_OUTCOMES[body.action]
+    await repo.set_status(session, submission_id, status)
+    log.info(
+        "underwriter_review",
+        submission_id=submission_id,
+        action=body.action,
+        reviewer=body.reviewer,
+        status=status,
+    )
+    return entry

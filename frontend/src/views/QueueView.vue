@@ -120,7 +120,10 @@ watch(() => route.query, load)
               <span v-if="!item.flags.length" class="muted">-</span>
             </td>
             <td class="num">{{ formatConfidence(item.confidence) }}</td>
-            <td class="small">{{ item.assessed_by ?? '-' }}</td>
+            <td class="small">
+              {{ item.assessed_by ?? '-' }}
+              <div v-if="item.reviewed_by" class="muted">reviewed by {{ item.reviewed_by }}</div>
+            </td>
           </tr>
         </tbody>
       </table>

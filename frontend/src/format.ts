@@ -13,6 +13,9 @@ export const ACTION_LABELS: Record<Action, string> = {
   auto_approve: 'Auto-approve',
   auto_decline: 'Auto-decline',
   refer_to_underwriter: 'Refer to underwriter',
+  underwriter_approve: 'Underwriter approved',
+  underwriter_decline: 'Underwriter declined',
+  underwriter_request_info: 'Underwriter requested info',
 }
 
 export const SEVERITY_LABELS: Record<Severity, string> = {
@@ -28,13 +31,16 @@ export function statusTone(status: SubmissionStatusValue | Action | null | undef
   switch (status) {
     case 'completed':
     case 'auto_approve':
+    case 'underwriter_approve':
       return 'good'
     case 'referred':
     case 'refer_to_underwriter':
     case 'needs_more_info':
+    case 'underwriter_request_info':
       return 'warn'
     case 'declined':
     case 'auto_decline':
+    case 'underwriter_decline':
     case 'failed':
       return 'bad'
     default:

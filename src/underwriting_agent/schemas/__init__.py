@@ -8,7 +8,9 @@ from underwriting_agent.schemas.api import (
 from underwriting_agent.schemas.decision import (
     AuditVerification,
     DecisionLogEntry,
+    ReviewRequest,
     TriageDecision,
+    UnderwriterReview,
 )
 from underwriting_agent.schemas.enrichment import EnrichmentResult
 from underwriting_agent.schemas.risk_memo import Recommendation, RiskFlag, RiskMemo
@@ -20,6 +22,7 @@ __all__ = [
     "EnrichmentResult",
     "NeedsMoreInfoResponse",
     "Recommendation",
+    "ReviewRequest",
     "RiskFlag",
     "RiskMemo",
     "Submission",
@@ -28,4 +31,5 @@ __all__ = [
     "SubmissionSummary",
     "TriageDecision",
     "UnderwriteResponse",
+    "UnderwriterReview",
 ]
