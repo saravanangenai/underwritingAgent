@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0 # this action publishes exact tags only, no floating v10
         with:
           python-version: "3.12"
           enable-cache: true
