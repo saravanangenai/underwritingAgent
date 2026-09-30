@@ -72,6 +72,43 @@ npm test             # component and API-client tests (the API is mocked)
 npm run build        # type-check with vue-tsc, then a production build in dist/
 ```
 
+## Sign-in and roles (Phase 9)
+
+Everything except `GET /health` requires signing in. Users live in the application database;
+passwords are hashed with scrypt from the Python standard library.
+
+| Role | Can |
+| --- | --- |
+| viewer | read the queue, submissions, decisions, history and audit status |
+| underwriter | also submit cases and review referrals |
+| admin | also manage users |
+
+**First admin** (once per database; the password is typed at a hidden prompt, 12+ characters):
+
+```bash
+uv run python -m underwriting_agent.auth create --username ada --name "Ada L" --role admin
+```
+
+After that, admins add users on the workbench's **Users** page (or with the same command). Other
+commands: `list`, `set-password --username X`, `deactivate --username X`; `--password-stdin`
+reads the password from a pipe for scripts.
+
+- **Browsers** get an httpOnly, SameSite=Lax session cookie from `POST /auth/login`. **API
+  clients** use the returned `token` as `Authorization: Bearer <token>` (the Postman collection
+  signs in first and does this for you).
+- Sessions last `SESSION_HOURS` (12). Five failed sign-ins lock a username for five minutes.
+  Unknown usernames and wrong passwords get the same answer and take the same time.
+- Changing a role, deactivating a user or resetting their password signs them out everywhere.
+  The last active admin cannot be deactivated or demoted.
+- Reviews are recorded as the signed-in user, `Display Name (username)`; a `reviewer` field in
+  the request is ignored. Submissions record `submitted_by`.
+- The workbench calls the API at `/api` on its own origin: Vite proxies it to
+  `http://127.0.0.1:8000` in development (`API_PROXY_TARGET` changes that), and the production
+  web server will do the same. Same origin keeps the cookie simple and first-party.
+- In production set `COOKIE_SECURE=true` so the cookie is only sent over HTTPS.
+- Existing databases gain the `users` and `sessions` tables and `submissions.submitted_by` in
+  place on startup.
+
 ## Underwriter review (Phase 8)
 
 A referred submission waits for a person. On its detail page the workbench shows a review panel:
@@ -80,7 +117,7 @@ reviewer's name. The API behind it:
 
 ```bash
 curl -X POST localhost:8000/submissions/SUB-1234/review -H 'content-type: application/json'   -d '{"action": "approve", "note": "Pool fence confirmed by photos.", "reviewer": "A. Underwriter"}'
-curl localhost:8000/submissions/SUB-1234/history
+curl -H "Authorization: Bearer $TOKEN" localhost:8000/submissions/SUB-1234/history
 ```
 
 - Only `referred` submissions can be reviewed (409 otherwise, including a second review).
@@ -93,8 +130,7 @@ curl localhost:8000/submissions/SUB-1234/history
   the premium quote.
 - `GET /submissions/{id}/history` returns every entry, oldest first; the workbench shows it as a
   timeline, and the queue shows who reviewed each case.
-- **The reviewer name is typed, not verified.** Until sign-in exists, anyone who can reach the
-  API can record a review under any name. Add authentication before real use.
+- The reviewer is the signed-in user (Phase 9).
 - Existing Phase 5+ databases gain the `review_json` column in place on startup. Entries without
   a review hash exactly as before, so existing chains still verify.
 
@@ -306,6 +342,9 @@ HZ-001 cutoff of 70. The other synthetic addresses do not geocode, so they also 
 | GET | `/submissions` | Queue: newest first, `status` filter, `limit`/`offset` paging |
 | GET | `/submissions/{id}` | Stored submission and current status |
 | GET | `/submissions/{id}/decision` | Audit record for the decision |
+| POST | `/auth/login`, `/auth/logout` | Sign in (cookie + token) / sign out |
+| GET | `/auth/me` | The signed-in user |
+| GET, POST, PATCH | `/users`, `/users/{username}` | Manage users (admin) |
 | POST | `/submissions/{id}/review` | Underwriter decision on a referred submission |
 | GET | `/submissions/{id}/history` | Every audit entry for a submission, oldest first |
 | GET | `/audit/verify` | Recompute the decision log's hash chain |
@@ -314,7 +353,7 @@ HZ-001 cutoff of 70. The other synthetic addresses do not geocode, so they also 
 ## Develop
 
 ```bash
-uv run pytest        # 139 tests; fakes only, never calls an LLM, the geocoder or Apify
+uv run pytest        # 171 tests; fakes only, never calls an LLM, the geocoder or Apify
 uv run ruff check .  # lint
 uv run ruff format . # format
 ```
@@ -360,6 +399,8 @@ frontend/         Vue 3 underwriter workbench (see above)
 7. Phase 7: Vue underwriter workbench (Vue 3 + Vite + TypeScript in `frontend/`): queue,
    submission detail with cited flags and audit record, new-submission form, audit banner;
    `GET /submissions` list endpoint
-8. Phase 8 (this): underwriter review of referrals (approve, decline, request info) with
+8. Phase 8: underwriter review of referrals (approve, decline, request info) with
    notes, appended to the audit chain; submission history
-9. Next: sign-in and roles, so reviews are attributed to verified users
+9. Phase 9 (this): sign-in, sessions and roles (viewer, underwriter, admin); users page;
+   reviews and submissions attributed to the signed-in user
+10. Next: deploy to a Google Cloud free-tier VM (Docker Compose, Caddy with HTTPS, backups)

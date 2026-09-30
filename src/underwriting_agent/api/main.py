@@ -5,7 +5,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from underwriting_agent.agents.enrichment import HazardProvider
+from underwriting_agent.api.auth_routes import router as auth_router
 from underwriting_agent.api.routes import router
+from underwriting_agent.auth.deps import LoginThrottle
 from underwriting_agent.config import Settings
 from underwriting_agent.llm import LLM, build_llm
 from underwriting_agent.logging_config import configure_logging
@@ -34,7 +36,7 @@ def create_app(
 
     app = FastAPI(
         title="Homeowners Underwriting Agent",
-        version="0.8.0",
+        version="0.9.0",
         description=(
             "Phase 5: hash-chained, replayable audit log. Rules plus an LLM risk review with "
             "cited flags and guardrailed triage. "
@@ -59,6 +61,11 @@ def create_app(
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.state.settings = settings
+    app.state.login_throttle = LoginThrottle(
+        settings.login_max_failures, settings.login_lockout_seconds
+    )
+    app.include_router(auth_router)
     app.include_router(router)
     return app
 

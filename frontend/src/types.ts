@@ -1,5 +1,20 @@
 // Mirrors the FastAPI schemas in src/underwriting_agent/schemas. Keep the two in step.
 
+export type Role = 'viewer' | 'underwriter' | 'admin'
+
+export interface User {
+  username: string
+  display_name: string
+  role: Role
+  active: boolean
+}
+
+export interface LoginResponse {
+  user: User
+  token: string
+  expires_at: string
+}
+
 export type Action =
   | 'auto_approve'
   | 'auto_decline'
@@ -64,7 +79,6 @@ export interface UnderwriterReview {
 export interface ReviewRequest {
   action: ReviewAction
   note: string
-  reviewer: string
 }
 
 export interface DecisionLogEntry {
@@ -90,6 +104,7 @@ export interface SubmissionStatus {
   status: SubmissionStatusValue
   created_at: string
   updated_at: string
+  submitted_by?: string | null
 }
 
 export interface SubmissionSummary extends SubmissionStatus {

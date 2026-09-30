@@ -7,6 +7,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from underwriting_agent.auth.deps import get_session, require_underwriter, require_viewer
+from underwriting_agent.auth.schemas import User
 from underwriting_agent.graph.orchestrator import run_pipeline
 from underwriting_agent.llm import LLMError
 from underwriting_agent.persistence import repository as repo
@@ -26,15 +28,13 @@ from underwriting_agent.utils import utcnow
 log = structlog.get_logger()
 router = APIRouter()
 
+# Reading needs any signed-in user; submitting and reviewing need an underwriter.
+VIEWER = [Depends(require_viewer)]
+
 _EXAMPLES = {
     name: {"summary": name.replace("_", " ").title(), "value": load_sample(name)}
     for name in SAMPLE_NAMES
 }
-
-
-async def get_session(request: Request):
-    async with request.app.state.session_factory() as session:
-        yield session
 
 
 @router.get("/health")
@@ -55,6 +55,7 @@ async def underwrite(
     request: Request,
     raw: dict[str, Any] = Body(..., openapi_examples=_EXAMPLES),
     session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_underwriter),
 ):
     """Run the underwriting pipeline on one submission.
 
@@ -66,7 +67,7 @@ async def underwrite(
     if await repo.get_submission(session, submission_id):
         raise HTTPException(status_code=409, detail=f"Submission {submission_id} already exists")
     try:
-        await repo.create_submission(session, submission_id, raw)
+        await repo.create_submission(session, submission_id, raw, submitted_by=user.username)
     except IntegrityError:
         await session.rollback()
         raise HTTPException(
@@ -92,6 +93,7 @@ async def underwrite(
         )
         return JSONResponse(status_code=422, content=body.model_dump())
 
+    result.log_entry.inputs["submitted_by"] = user.username
     await repo.save_decision(session, result.log_entry)
     await repo.set_status(session, submission_id, result.status)
     return UnderwriteResponse(
@@ -106,7 +108,7 @@ async def underwrite(
 SUBMISSION_STATUSES = ("running", "completed", "referred", "declined", "needs_more_info", "failed")
 
 
-@router.get("/submissions", response_model=SubmissionPage)
+@router.get("/submissions", response_model=SubmissionPage, dependencies=VIEWER)
 async def list_submissions(
     status: str | None = Query(None, description=f"One of: {', '.join(SUBMISSION_STATUSES)}"),
     limit: int = Query(50, ge=1, le=200),
@@ -119,7 +121,7 @@ async def list_submissions(
     return await repo.list_submissions(session, status=status, limit=limit, offset=offset)
 
 
-@router.get("/submissions/{submission_id}", response_model=SubmissionStatus)
+@router.get("/submissions/{submission_id}", response_model=SubmissionStatus, dependencies=VIEWER)
 async def get_submission_status(submission_id: str, session: AsyncSession = Depends(get_session)):
     row = await repo.get_submission(session, submission_id)
     if row is None:
@@ -129,10 +131,13 @@ async def get_submission_status(submission_id: str, session: AsyncSession = Depe
         status=row.status,
         created_at=row.created_at,
         updated_at=row.updated_at,
+        submitted_by=row.submitted_by,
     )
 
 
-@router.get("/submissions/{submission_id}/decision", response_model=DecisionLogEntry)
+@router.get(
+    "/submissions/{submission_id}/decision", response_model=DecisionLogEntry, dependencies=VIEWER
+)
 async def get_submission_decision(submission_id: str, session: AsyncSession = Depends(get_session)):
     entry = await repo.get_decision(session, submission_id)
     if entry is None:
@@ -140,14 +145,18 @@ async def get_submission_decision(submission_id: str, session: AsyncSession = De
     return entry
 
 
-@router.get("/audit/verify", response_model=AuditVerification)
+@router.get("/audit/verify", response_model=AuditVerification, dependencies=VIEWER)
 async def verify_audit_log(session: AsyncSession = Depends(get_session)):
     """Recompute the decision log's hash chain. `ok` is false if any entry was edited,
     removed or reordered, and `first_bad_entry_id` points at the first broken entry."""
     return await repo.verify_chain(session)
 
 
-@router.get("/submissions/{submission_id}/history", response_model=list[DecisionLogEntry])
+@router.get(
+    "/submissions/{submission_id}/history",
+    response_model=list[DecisionLogEntry],
+    dependencies=VIEWER,
+)
 async def get_submission_history(submission_id: str, session: AsyncSession = Depends(get_session)):
     """Every audit entry for the submission, oldest first: the automated decision, then any
     underwriter review."""
@@ -168,6 +177,7 @@ async def review_submission(
     submission_id: str,
     body: ReviewRequest,
     session: AsyncSession = Depends(get_session),
+    user: User = Depends(require_underwriter),
 ):
     """Record an underwriter's decision on a referred submission.
 
@@ -186,14 +196,16 @@ async def review_submission(
     if previous is None:
         raise HTTPException(status_code=409, detail="No decision recorded to review")
 
-    entry = await repo.save_decision(session, build_review_entry(previous, body, utcnow()))
+    entry = await repo.save_decision(
+        session, build_review_entry(previous, body, utcnow(), reviewer=user.label)
+    )
     _, status = REVIEW_OUTCOMES[body.action]
     await repo.set_status(session, submission_id, status)
     log.info(
         "underwriter_review",
         submission_id=submission_id,
         action=body.action,
-        reviewer=body.reviewer,
+        reviewer=user.username,
         status=status,
     )
     return entry

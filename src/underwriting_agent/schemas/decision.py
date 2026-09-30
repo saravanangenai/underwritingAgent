@@ -29,10 +29,9 @@ class ReviewRequest(BaseModel):
 
     action: ReviewAction
     note: str = Field(min_length=10, max_length=4000)  # why: required for the audit trail
-    # Until sign-in exists this is typed by the underwriter; it is not verified.
-    reviewer: str = Field(min_length=2, max_length=100)
+    # The reviewer is the signed-in user, never taken from the request.
 
-    @field_validator("note", "reviewer")
+    @field_validator("note")
     @classmethod
     def _strip(cls, value: str) -> str:
         value = value.strip()

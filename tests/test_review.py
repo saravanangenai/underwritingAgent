@@ -6,6 +6,7 @@ import sqlite3
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.conftest import sign_in
 from underwriting_agent.api.main import create_app
 from underwriting_agent.persistence.repository import entry_hash
 from underwriting_agent.samples import load_sample
@@ -20,10 +21,11 @@ def _referred(client) -> str:
     return body["submission_id"]
 
 
-def _review(client, sid, action="approve", note=NOTE, reviewer="A. Underwriter"):
-    return client.post(
-        f"/submissions/{sid}/review", json={"action": action, "note": note, "reviewer": reviewer}
-    )
+UMA = "Uma Underwriter (uma)"  # how the signed-in underwriter is recorded
+
+
+def _review(client, sid, action="approve", note=NOTE):
+    return client.post(f"/submissions/{sid}/review", json={"action": action, "note": note})
 
 
 def test_approving_a_referral_appends_a_linked_entry(client):
@@ -36,7 +38,7 @@ def test_approving_a_referral_appends_a_linked_entry(client):
     assert entry["decision"]["action"] == "underwriter_approve"
     assert entry["decision"]["confidence"] is None
     assert entry["decision"]["estimated_premium"] == automated["decision"]["estimated_premium"]
-    assert entry["review"]["reviewer"] == "A. Underwriter"
+    assert entry["review"]["reviewer"] == UMA
     assert entry["review"]["note"] == NOTE
     assert entry["review"]["supersedes_entry_hash"] == automated["entry_hash"]
     assert entry["prev_hash"] == automated["entry_hash"]  # next link in the chain
@@ -83,9 +85,10 @@ def test_history_lists_the_automated_decision_then_the_review(client):
 
 def test_queue_shows_who_reviewed(client):
     sid = _referred(client)
-    _review(client, sid, reviewer="B. Reviewer")
+    _review(client, sid)
     row = next(r for r in client.get("/submissions").json()["items"] if r["submission_id"] == sid)
-    assert row["reviewed_by"] == "B. Reviewer"
+    assert row["reviewed_by"] == UMA
+    assert row["submitted_by"] == "uma"
     assert row["action"] == "underwriter_approve"
     assert row["status"] == "completed"
 
@@ -110,11 +113,10 @@ def test_unknown_submission_is_404(client):
 @pytest.mark.parametrize(
     "payload",
     [
-        {"action": "approve", "note": "ok", "reviewer": "A. Underwriter"},  # note too short
-        {"action": "approve", "note": " " * 20, "reviewer": "A. Underwriter"},  # blank note
-        {"action": "approve", "note": NOTE, "reviewer": "  "},  # blank reviewer
-        {"action": "escalate", "note": NOTE, "reviewer": "A. Underwriter"},  # unknown action
-        {"action": "approve", "reviewer": "A. Underwriter"},  # missing note
+        {"action": "approve", "note": "ok"},  # note too short
+        {"action": "approve", "note": " " * 20},  # blank note
+        {"action": "escalate", "note": NOTE},  # unknown action
+        {"action": "approve"},  # missing note
     ],
 )
 def test_invalid_reviews_are_rejected(client, payload):
@@ -147,13 +149,14 @@ def test_entries_without_a_review_hash_as_they_did_before_reviews_existed(client
     assert entry_hash(stored, stored.prev_hash) == old_style == stored.entry_hash
 
 
-def test_a_phase_5_database_gains_the_review_column_in_place(settings, tmp_path):
+def test_a_phase_5_database_gains_the_review_column_in_place(settings, users, tmp_path):
     with TestClient(create_app(settings)) as client:
-        sid = _referred(client)
+        sid = _referred(sign_in(client))
     with sqlite3.connect(tmp_path / "test.db") as db:  # back to the pre-Phase 8 schema
         db.execute("ALTER TABLE decision_log DROP COLUMN review_json")
 
     with TestClient(create_app(settings)) as client:
+        sign_in(client)
         assert client.get("/audit/verify").json() == {
             "ok": True,
             "entries_checked": 1,
@@ -162,3 +165,18 @@ def test_a_phase_5_database_gains_the_review_column_in_place(settings, tmp_path)
         }
         assert _review(client, sid).status_code == 200
         assert client.get("/audit/verify").json()["entries_checked"] == 2
+
+
+def test_a_typed_reviewer_name_is_ignored(client):
+    sid = _referred(client)
+    body = {"action": "approve", "note": NOTE, "reviewer": "Mallory"}
+    entry = client.post(f"/submissions/{sid}/review", json=body).json()
+    assert entry["review"]["reviewer"] == UMA
+
+
+def test_viewers_cannot_review(settings, users):
+    with TestClient(create_app(settings)) as client:
+        sid = _referred(sign_in(client, "uma"))
+        sign_in(client, "vic")
+        assert _review(client, sid).status_code == 403
+        assert client.get(f"/submissions/{sid}").json()["status"] == "referred"

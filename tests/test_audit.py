@@ -1,9 +1,11 @@
 """Phase 5: the hash-chained decision log and what it records."""
 
+import asyncio
 import sqlite3
 
 from fastapi.testclient import TestClient
 
+from tests.conftest import _seed, sign_in
 from tests.fakes import ACORD_EXTRACTION, RoutingLLM, risk_review
 from underwriting_agent.api.main import create_app
 from underwriting_agent.persistence.repository import GENESIS_HASH
@@ -45,10 +47,11 @@ def test_record_keeps_the_inputs_for_replay(client):
     assert entry["llm_review_raw"] is None
 
 
-def test_llm_decision_records_prompts_and_raw_reply(settings):
+def test_llm_decision_records_prompts_and_raw_reply(settings, users):
     settings.llm_risk_assessment = True
     llm = RoutingLLM(intake=ACORD_EXTRACTION, risk=risk_review("refer", 0.8))
     with TestClient(create_app(settings, llm=llm)) as client:
+        sign_in(client)
         body = client.post("/underwrite", json=load_sample("acord_text")).json()
         entry = client.get(f"/submissions/{body['submission_id']}/decision").json()
         assert client.get("/audit/verify").json()["ok"] is True
@@ -118,7 +121,9 @@ def test_legacy_decision_log_is_set_aside(settings, tmp_path):
             INSERT INTO decision_log (submission_id, action) VALUES ('OLD-1', 'auto_approve');
             """
         )
+    asyncio.run(_seed(settings.database_url))  # users, added after the old schema exists
     with TestClient(create_app(settings)) as client:
+        sign_in(client)
         assert client.post("/underwrite", json=load_sample("clean")).status_code == 200
         assert client.get("/audit/verify").json()["entries_checked"] == 1
 

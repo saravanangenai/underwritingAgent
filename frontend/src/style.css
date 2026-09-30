@@ -726,3 +726,52 @@ a:focus-visible {
 .timeline__item p.mono {
   margin: 0;
 }
+
+/* ---- sign-in and account ---- */
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.login__card {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.login__card h1 {
+  margin: 0;
+}
+
+.login__card p {
+  margin: 0;
+}
+
+select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}
+
+.recommendation__applied {
+  font-weight: 600;
+  color: var(--text);
+}

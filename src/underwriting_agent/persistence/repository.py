@@ -37,7 +37,12 @@ def _append_lock() -> asyncio.Lock:
     return lock
 
 
-async def create_submission(session: AsyncSession, submission_id: str, raw: dict[str, Any]) -> None:
+async def create_submission(
+    session: AsyncSession,
+    submission_id: str,
+    raw: dict[str, Any],
+    submitted_by: str | None = None,
+) -> None:
     now = utcnow()
     session.add(
         SubmissionRow(
@@ -46,6 +51,7 @@ async def create_submission(session: AsyncSession, submission_id: str, raw: dict
             raw_payload=json.dumps(raw),
             created_at=now,
             updated_at=now,
+            submitted_by=submitted_by,
         )
     )
     await session.commit()
@@ -102,6 +108,7 @@ async def list_submissions(
             status=row.status,
             created_at=row.created_at,
             updated_at=row.updated_at,
+            submitted_by=row.submitted_by,
         )
         decision = latest.get(row.id)
         if decision is not None:

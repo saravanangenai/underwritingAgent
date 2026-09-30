@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import structlog
-from sqlalchemy import ForeignKey, String, Text, inspect
+from sqlalchemy import Boolean, ForeignKey, String, Text, inspect
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -22,6 +22,29 @@ class SubmissionRow(Base):
     raw_payload: Mapped[str] = mapped_column(Text)  # the request body as JSON
     created_at: Mapped[datetime]
     updated_at: Mapped[datetime]
+    submitted_by: Mapped[str | None] = mapped_column(String(64))  # username (Phase 9)
+
+
+class UserRow(Base):
+    __tablename__ = "users"
+
+    username: Mapped[str] = mapped_column(String(64), primary_key=True)
+    display_name: Mapped[str] = mapped_column(String(100))
+    role: Mapped[str] = mapped_column(String(20))  # viewer | underwriter | admin
+    password_hash: Mapped[str] = mapped_column(String(255))
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime]
+
+
+class SessionRow(Base):
+    """A signed-in session. Only a SHA-256 of the token is stored."""
+
+    __tablename__ = "sessions"
+
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    username: Mapped[str] = mapped_column(ForeignKey("users.username"), index=True)
+    created_at: Mapped[datetime]
+    expires_at: Mapped[datetime]
 
 
 class DecisionLogRow(Base):
@@ -75,20 +98,25 @@ def _set_aside_legacy_log(sync_conn) -> None:
     log.warning("legacy_decision_log_renamed", table=legacy)
 
 
-# Nullable columns added after Phase 5, applied in place to an existing chained log. Old rows
-# keep NULL, and entry_hash leaves an empty review out, so their hashes still verify.
-_ADDED_COLUMNS = {"review_json": "TEXT"}
+# Nullable columns added to existing tables after they were first created, applied in place.
+# Old rows keep NULL; entry_hash leaves an empty review out, so decision hashes still verify.
+_ADDED_COLUMNS = {
+    "decision_log": {"review_json": "TEXT"},  # Phase 8
+    "submissions": {"submitted_by": "VARCHAR(64)"},  # Phase 9
+}
 
 
 def _add_missing_columns(sync_conn) -> None:
     inspector = inspect(sync_conn)
-    if "decision_log" not in inspector.get_table_names():
-        return
-    existing = {c["name"] for c in inspector.get_columns("decision_log")}
-    for name, sql_type in _ADDED_COLUMNS.items():
-        if name not in existing:
-            sync_conn.exec_driver_sql(f"ALTER TABLE decision_log ADD COLUMN {name} {sql_type}")
-            log.info("decision_log_column_added", column=name)
+    tables = set(inspector.get_table_names())
+    for table, columns in _ADDED_COLUMNS.items():
+        if table not in tables:
+            continue
+        existing = {c["name"] for c in inspector.get_columns(table)}
+        for name, sql_type in columns.items():
+            if name not in existing:
+                sync_conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {name} {sql_type}")
+                log.info("column_added", table=table, column=name)
 
 
 async def init_db(engine: AsyncEngine) -> None:

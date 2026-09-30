@@ -2,12 +2,12 @@
 import { computed, ref } from 'vue'
 
 import { api, ApiError } from '../api'
+import { session } from '../auth'
 import type { ReviewAction } from '../types'
 
 const props = defineProps<{ submissionId: string }>()
 const emit = defineEmits<{ reviewed: [] }>()
 
-const REVIEWER_KEY = 'uw.reviewer'
 const NOTE_MIN = 10
 
 const OPTIONS: { value: ReviewAction; label: string; hint: string }[] = [
@@ -16,24 +16,13 @@ const OPTIONS: { value: ReviewAction; label: string; hint: string }[] = [
   { value: 'decline', label: 'Decline', hint: 'The risk is outside appetite.' },
 ]
 
-function loadReviewer(): string {
-  try {
-    return localStorage.getItem(REVIEWER_KEY) ?? ''
-  } catch {
-    return '' // storage can be blocked; the field just starts empty
-  }
-}
-
 const action = ref<ReviewAction | null>(null)
 const note = ref('')
-const reviewer = ref(loadReviewer())
 const submitting = ref(false)
 const error = ref<string | null>(null)
 
 const noteTooShort = computed(() => note.value.trim().length < NOTE_MIN)
-const canSubmit = computed(
-  () => action.value !== null && !noteTooShort.value && reviewer.value.trim().length >= 2,
-)
+const canSubmit = computed(() => action.value !== null && !noteTooShort.value)
 const buttonLabel = computed(
   () => OPTIONS.find((o) => o.value === action.value)?.label ?? 'Record decision',
 )
@@ -43,16 +32,7 @@ async function submit() {
   submitting.value = true
   error.value = null
   try {
-    await api.review(props.submissionId, {
-      action: action.value,
-      note: note.value.trim(),
-      reviewer: reviewer.value.trim(),
-    })
-    try {
-      localStorage.setItem(REVIEWER_KEY, reviewer.value.trim())
-    } catch {
-      // not remembering the name is fine
-    }
+    await api.review(props.submissionId, { action: action.value, note: note.value.trim() })
     emit('reviewed')
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'The review could not be recorded.'
@@ -85,11 +65,9 @@ async function submit() {
       <p class="muted small" :class="{ 'text-warn': note.length > 0 && noteTooShort }">
         At least {{ NOTE_MIN }} characters. The note is stored in the tamper-evident audit log.
       </p>
-      <div class="fields">
-        <label class="field">Your name
-          <input v-model="reviewer" autocomplete="name" />
-        </label>
-      </div>
+      <p class="small">
+        Recording as <strong>{{ session.user?.display_name }}</strong>&nbsp;<span class="muted">({{ session.user?.username }})</span>
+      </p>
       <p v-if="error" class="notice notice--bad" role="alert">{{ error }}</p>
       <div class="actions">
         <button type="submit" class="button button--primary" :disabled="!canSubmit || submitting">

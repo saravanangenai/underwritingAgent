@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import { api, ApiError } from '../api'
+import { hasRole } from '../auth'
 import FlagTable from '../components/FlagTable.vue'
 import HazardCard from '../components/HazardCard.vue'
 import HistoryTimeline from '../components/HistoryTimeline.vue'
@@ -61,6 +62,22 @@ async function onReviewed() {
 const justReviewed = computed(() => route.query.reviewed === '1')
 const awaitingReview = computed(() => status.value?.status === 'referred' && entry.value !== null)
 
+// The LLM only recommends; rules and people decide. Say so when the two differ.
+const RECOMMENDATION_ACTION = { approve: 'auto_approve', refer: 'refer_to_underwriter', decline: null }
+const recommendationNote = computed(() => {
+  const rec = memo.value?.recommendation
+  const action = decision.value?.action
+  if (!rec || !action) return null
+  if (entry.value?.review) return 'Superseded by the underwriter review below.'
+  if (RECOMMENDATION_ACTION[rec.action] === action) return null
+  const hardStops = (memo.value?.flags ?? []).filter((f) => f.severity === 'hard_stop')
+  if (action === 'auto_decline' && hardStops.length) {
+    return `Not applied: hard-stop rule ${hardStops.map((f) => f.rule_id).join(', ')} declined this automatically.`
+  }
+  if (rec.action === 'decline') return 'Not applied: only hard-stop rules decline; referred instead.'
+  return 'Not applied: the rules and guardrails decided this outcome (see the decision above).'
+})
+
 const submission = computed(() => entry.value?.inputs.submission ?? {})
 const memo = computed(() => entry.value?.risk_memo)
 const decision = computed(() => entry.value?.decision)
@@ -117,7 +134,7 @@ const facts = computed(() => {
       <p v-if="justReviewed && entry.review" class="notice notice--good" role="status">
         Decision recorded by {{ entry.review.reviewer }} and added to the audit log.
       </p>
-      <ReviewPanel v-if="awaitingReview" :submission-id="status.submission_id" @reviewed="onReviewed" />
+      <ReviewPanel v-if="awaitingReview && hasRole('underwriter')" :submission-id="status.submission_id" @reviewed="onReviewed" />
       <div class="grid">
         <section class="card">
           <header class="card__header">
@@ -171,6 +188,7 @@ const facts = computed(() => {
             <strong>LLM recommends {{ memo.recommendation.action }}</strong>
             ({{ formatConfidence(memo.recommendation.confidence) }}):
             {{ memo.recommendation.rationale }}
+            <p v-if="recommendationNote" class="small recommendation__applied">{{ recommendationNote }}</p>
             <p class="muted small">
               Guardrails: the LLM can make a decision more cautious, never less. Only rules decline.
             </p>

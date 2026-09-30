@@ -83,6 +83,9 @@ if ($apiUp -and $webUp) {
     Write-Host '  Workbench:   http://localhost:5173'
     Write-Host '  API docs:    http://localhost:8000/docs'
     Write-Host 'Close the two server windows to stop.'
+    Write-Host ''
+    Write-Host 'First run? Create an admin, then sign in:' -ForegroundColor Yellow
+    Write-Host '  uv run python -m underwriting_agent.auth create --username <you> --name "<Your Name>" --role admin'
     if (-not $NoBrowser) { Start-Process 'http://localhost:5173' }
 } else {
     exit 1

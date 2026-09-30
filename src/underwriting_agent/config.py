@@ -14,6 +14,12 @@ class Settings(BaseSettings):
         "http://localhost:5173"
     ]  # Vite's default port, for the Vue workbench
 
+    # Sign-in. Set COOKIE_SECURE=true when the app is served over HTTPS (production).
+    session_hours: float = 12.0
+    cookie_secure: bool = False
+    login_max_failures: int = 5
+    login_lockout_seconds: float = 300.0
+
     # LLM providers. Any provider without a key is skipped; the rest are tried in this order.
     llm_providers: list[str] = ["groq", "gemini", "openai"]
     llm_timeout_seconds: float = 60.0

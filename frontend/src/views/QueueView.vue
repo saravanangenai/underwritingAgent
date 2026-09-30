@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import { api, ApiError } from '../api'
+import { hasRole } from '../auth'
 import StatusBadge from '../components/StatusBadge.vue'
 import { formatConfidence, formatDateTime, STATUS_LABELS } from '../format'
 import type { SubmissionPage, SubmissionStatusValue } from '../types'
@@ -66,7 +67,7 @@ watch(() => route.query, load)
     </div>
     <div class="actions">
       <button type="button" class="button" :disabled="loading" @click="load">Refresh</button>
-      <RouterLink to="/new" class="button button--primary">New submission</RouterLink>
+      <RouterLink v-if="hasRole('underwriter')" to="/new" class="button button--primary">New submission</RouterLink>
     </div>
   </div>
 
@@ -90,7 +91,7 @@ watch(() => route.query, load)
     <p v-if="loading && !data" class="empty">Loading…</p>
     <p v-else-if="data && !data.items.length" class="empty">
       No {{ status ? STATUS_LABELS[status].toLowerCase() : '' }} submissions yet.
-      <RouterLink to="/new">Create one</RouterLink>.
+      <RouterLink v-if="hasRole('underwriter')" to="/new">Create one</RouterLink>
     </p>
     <div v-else-if="data" class="table-wrap">
       <table class="table table--rows">
