@@ -1,0 +1,16 @@
+[Unit]
+Description=Back up the Underwriting Agent database
+
+[Service]
+Type=oneshot
+User=underwriting
+Group=underwriting
+EnvironmentFile=/etc/underwriting-agent/api.env
+ExecStart=/opt/underwriting-agent/current/.venv/bin/python /opt/underwriting-agent/current/deploy/backup.py \
+    --dest /var/backups/underwriting-agent --keep 14
+MemoryMax=128M
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/underwriting-agent /var/backups/underwriting-agent

@@ -37,6 +37,14 @@ jobs:
       - name: Evaluation gate
         run: uv run python -m underwriting_agent.evals --gate
 
+      # Runs the API as in production (one worker) under load and fails if its peak memory
+      # would not fit the 1 GB free-tier VM budget.
+      - name: Memory check
+        run: uv run python deploy/memcheck.py
+
+      - name: Shell scripts
+        run: shellcheck --severity=warning deploy/install.sh deploy/uw-users
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 10

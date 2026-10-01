@@ -1,0 +1,42 @@
+[Unit]
+Description=Underwriting Agent API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=underwriting
+Group=underwriting
+WorkingDirectory=/opt/underwriting-agent/current
+# Keys and production settings; owned by root, readable only by this service's group.
+EnvironmentFile=/etc/underwriting-agent/api.env
+# One worker keeps memory low (about 125 MB measured). Only Caddy on this machine talks to it;
+# --root-path makes /api/docs work behind Caddy, which strips the /api prefix.
+ExecStart=/opt/underwriting-agent/current/.venv/bin/uvicorn underwriting_agent.api.main:app \
+    --host 127.0.0.1 --port 8000 --workers 1 \
+    --proxy-headers --forwarded-allow-ips 127.0.0.1 --root-path /api
+Restart=on-failure
+RestartSec=5
+
+# Memory: throttle above 320 MB, hard limit 384 MB (the e2-micro has 1 GB in total).
+MemoryHigh=320M
+MemoryMax=384M
+MemorySwapMax=128M
+
+# Sandboxing: read-only system, private /tmp, no privilege escalation.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadWritePaths=/var/lib/underwriting-agent
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
