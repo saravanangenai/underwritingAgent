@@ -169,7 +169,8 @@ Return one JSON object with exactly these keys:
 {{
   "flags": [{{"rule_id": "UW-10x", "issue": "one sentence with the value you saw", \
 "source_field": "submission.roof_year"}}],
-  "narrative": "3-5 sentence risk memo for an underwriter",
+  "narrative": "risk memo for an underwriter as 3-5 short bullet lines, each starting with \
+'- ' and separated by newlines, with no intro or closing sentence",
   "risk_score": 0-100 overall risk (higher is riskier),
   "recommendation": "approve" | "refer" | "decline",
   "confidence": 0.0-1.0,
