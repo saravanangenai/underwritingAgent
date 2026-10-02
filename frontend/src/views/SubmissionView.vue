@@ -7,6 +7,7 @@ import { hasRole } from '../auth'
 import FlagTable from '../components/FlagTable.vue'
 import HazardCard from '../components/HazardCard.vue'
 import HistoryTimeline from '../components/HistoryTimeline.vue'
+import IntakeEvidence from '../components/IntakeEvidence.vue'
 import ReviewPanel from '../components/ReviewPanel.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import {
@@ -83,6 +84,10 @@ const recommendationNote = computed(() => {
 const submission = computed(() => entry.value?.inputs.submission ?? {})
 const memo = computed(() => entry.value?.risk_memo)
 const decision = computed(() => entry.value?.decision)
+const intakeEvidence = computed(() => {
+  const evidence = entry.value?.inputs.intake?.evidence
+  return evidence && Object.keys(evidence).length ? evidence : null
+})
 const llmReviewed = computed(() => memo.value && memo.value.assessed_by !== 'rules')
 
 // The JSON the risk review received: the submission, each enrichment source's data, and the
@@ -182,6 +187,14 @@ const facts = computed(() => {
           </dl>
         </section>
       </div>
+
+      <section v-if="intakeEvidence" class="card">
+        <header class="card__header">
+          <h2>How the application was read</h2>
+          <span class="muted small">Each value is backed by a quote that must appear in the text</span>
+        </header>
+        <IntakeEvidence :evidence="intakeEvidence" />
+      </section>
 
       <section class="card">
         <header class="card__header">

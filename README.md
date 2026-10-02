@@ -328,9 +328,17 @@ no secrets: tests use fakes, and the gate uses no LLM or Apify.
 Intake sends `{"acord_text": "..."}` payloads to an LLM, which extracts the same nested
 fields the JSON samples use. Structured JSON never touches the LLM.
 
-- Any provider with a key in `.env` (`GROQ_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`) is
-  used. They are tried in `LLM_PROVIDERS` order (default groq, gemini, openai); a timeout,
-  error status or non-JSON reply moves on to the next one.
+- **Every value is backed by a quote.** For each field it fills in, the model also returns the
+  exact words it read and a confidence. Code checks that the quote appears in the application
+  text. A value whose quote is not in the text, or that was read below `INTAKE_MIN_CONFIDENCE`
+  (0.6, in `rules.py`), is dropped: a required field then returns "needs more info" with the
+  reason, and an optional one stays unknown. A value with no quote is kept but marked.
+  The evidence is stored in the audit record (`inputs.intake.evidence`) and shown on the
+  submission page under "How the application was read".
+- With `OPENAI_ENABLED=true` (the default) OpenAI is tried first; with `false` it is skipped and
+  Groq goes first. Any provider with a key in `.env` (`GROQ_API_KEY`, `GEMINI_API_KEY`,
+  `OPENAI_API_KEY`) is used, in `LLM_PROVIDERS` order after that; a timeout, error status or
+  non-JSON reply moves on to the next one.
 - Models default to `openai/gpt-oss-120b`, `gemini-flash-latest` and `gpt-5.4-mini`;
   override with `GROQ_MODEL`, `GEMINI_MODEL` and `OPENAI_MODEL`.
 - If every provider fails, or no key is set, `/underwrite` returns 503 for ACORD text.

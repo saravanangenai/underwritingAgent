@@ -41,6 +41,7 @@ class PipelineState(TypedDict, total=False):
     submission: Submission | None
     missing_fields: list[str]
     intake_model: str | None
+    intake_evidence: dict[str, dict[str, Any]]
     enrichment: Annotated[list[EnrichmentResult], operator.add]  # merged from parallel lookups
     risk_memo: RiskMemo
     decision: TriageDecision
@@ -78,6 +79,7 @@ def build_graph(
             "submission": result.submission,
             "missing_fields": result.missing_fields,
             "intake_model": result.model_id,
+            "intake_evidence": result.evidence,
         }
 
     def route_after_intake(state: PipelineState) -> str | list[Send]:
@@ -129,6 +131,7 @@ def build_graph(
             state["risk_memo"],
             state["decision"],
             intake_model=state.get("intake_model"),
+            intake_evidence=state.get("intake_evidence"),
             enrichment=sorted(state["enrichment"], key=lambda r: r.source),
         )
         log.info("agent_completed", agent="compliance", submission_id=state["submission_id"])

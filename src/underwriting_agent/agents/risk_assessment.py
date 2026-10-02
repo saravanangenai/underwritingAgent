@@ -187,9 +187,10 @@ ending with the reason for your recommendation. Leave out anything that is fine,
 effective date or a matching coverage amount, unless it changes the recommendation. Write money \
 with a "$". Write in the third person, and do not discuss outcomes you are not recommending \
 (for example why decline is not indicated). Use only facts from the input: never guess a missing \
-value from the address or city. Judge hazard severity by the rating label (for example "Relatively Low"), \
-never by the number alone: the scores are national percentiles, and a high percentile does not \
-mean a high rating. For distance to the coast, say "X miles from the coast", never "inland".
+value from the address or city. Judge hazard severity by the rating label (for example \
+"Relatively Low"), never by the number alone: the scores are national percentiles, and a high \
+percentile does not mean a high rating. For distance to the coast, say "X miles from the coast", \
+never "inland".
 
 Recommend "decline" when any rule flag is a hard_stop, and say so in the narrative. \
 Recommend "refer" whenever any flag (yours or the rules') is a caution, or when you are unsure. \

@@ -81,6 +81,16 @@ export interface ReviewRequest {
   note: string
 }
 
+export type IntakeEvidenceStatus = 'verified' | 'no_evidence' | 'low_confidence' | 'quote_not_found'
+
+/** How one field was read from ACORD text: what the model quoted and how sure it was. */
+export interface IntakeEvidenceEntry {
+  value: unknown
+  quote: string | null
+  confidence: number | null
+  status: IntakeEvidenceStatus
+}
+
 export interface DecisionLogEntry {
   submission_id: string
   decision: TriageDecision
@@ -91,6 +101,7 @@ export interface DecisionLogEntry {
   inputs: {
     submission?: Record<string, unknown>
     enrichment?: EnrichmentResult[]
+    intake?: { evidence: Record<string, IntakeEvidenceEntry> }
   }
   prompt_versions: Record<string, string>
   llm_review_raw: Record<string, unknown> | null

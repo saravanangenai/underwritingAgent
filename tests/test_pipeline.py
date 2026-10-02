@@ -1,6 +1,6 @@
 import pytest
 
-from tests.fakes import ACORD_EXTRACTION, FakeLLM
+from tests.fakes import ACORD_EXTRACTION, ACORD_EXTRACTION_WITH_EVIDENCE, FakeLLM
 from tests.test_agents import make_submission
 from underwriting_agent import rules
 from underwriting_agent.agents.compliance import compliance_agent
@@ -68,6 +68,15 @@ async def test_pipeline_runs_acord_text_through_the_llm():
     assert result.status == "referred"
     assert result.submission.coverage_a_limit == 720000
     assert result.log_entry.model_version.startswith("intake=fake/fake-model")
+
+
+async def test_audit_record_keeps_the_intake_evidence():
+    llm = FakeLLM(ACORD_EXTRACTION_WITH_EVIDENCE)
+    result = await run_pipeline(load_sample("acord_text"), "SUB-EVID", llm)
+    evidence = result.log_entry.inputs["intake"]["evidence"]
+    assert evidence["coverage.coverage_a_limit"]["quote"] == "A - DWELLING $720,000"
+    clean = await run_pipeline(load_sample("clean"), "SUB-NOEVID")
+    assert "intake" not in clean.log_entry.inputs
 
 
 async def test_pipeline_propagates_llm_failure():

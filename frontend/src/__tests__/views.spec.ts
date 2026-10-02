@@ -163,6 +163,50 @@ describe('SubmissionView', () => {
     expect(again.app.find('pre.json').exists()).toBe(false)
   })
 
+  it('shows how each ACORD field was read, problems first, and nothing for JSON input', async () => {
+    const status = {
+      submission_id: 'SUB-ABC',
+      status: 'referred' as const,
+      created_at: '2026-09-29T10:00:00',
+      updated_at: '2026-09-29T10:00:01',
+    }
+    const withEvidence: DecisionLogEntry = {
+      ...ENTRY,
+      inputs: {
+        ...ENTRY.inputs,
+        intake: {
+          evidence: {
+            'coverage.coverage_a_limit': {
+              value: 720000,
+              quote: 'A - DWELLING $720,000',
+              confidence: 0.96,
+              status: 'verified',
+            },
+            'property.roof_year': {
+              value: 2019,
+              quote: 'Tile, replaced 2019',
+              confidence: 0.2,
+              status: 'low_confidence',
+            },
+          },
+        },
+      },
+    }
+    vi.spyOn(api, 'getSubmission').mockResolvedValue(status)
+    vi.spyOn(api, 'getDecision').mockResolvedValue(withEvidence)
+    const { app } = await mountAt('/submissions/SUB-ABC')
+    expect(app.text()).toContain('How the application was read')
+    const rows = app.findAll('table.table').find((t) => t.text().includes('Quoted from'))!.findAll('tbody tr')
+    expect(rows[0].text()).toContain('property.roof_year') // the dropped value comes first
+    expect(rows[0].text()).toContain('Dropped: low confidence')
+    expect(rows[1].text()).toContain('A - DWELLING $720,000')
+    expect(rows[1].text()).toContain('96%')
+
+    vi.spyOn(api, 'getDecision').mockResolvedValue(ENTRY)
+    const json = await mountAt('/submissions/SUB-ABC')
+    expect(json.app.text()).not.toContain('How the application was read')
+  })
+
   it('explains a submission with no decision', async () => {
     vi.spyOn(api, 'getSubmission').mockResolvedValue({
       submission_id: 'SUB-INC',

@@ -26,6 +26,9 @@ COVERAGE_A_PLAUSIBLE_MAX = 5_000_000
 
 # The LLM may approve only when no rule fired and it is at least this confident.
 LLM_APPROVE_MIN_CONFIDENCE = 0.7
+# Intake: a value read from ACORD text with less confidence than this is dropped, so a required
+# field falls back to "needs more info" and an optional one stays unknown.
+INTAKE_MIN_CONFIDENCE = 0.6
 
 Severity = Literal["info", "caution", "hard_stop"]
 
