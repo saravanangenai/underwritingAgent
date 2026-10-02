@@ -95,6 +95,14 @@ def test_build_llm_keeps_order_and_skips_missing_keys():
     assert [c.provider for c in llm.clients] == ["openai", "groq"]
 
 
+def test_openai_enabled_flag_skips_openai_even_with_a_key():
+    base = {"_env_file": None, "groq_api_key": "g", "openai_api_key": "o"}
+    on = build_llm(Settings(**base, openai_enabled=True))
+    assert [c.provider for c in on.clients] == ["openai", "groq"]
+    off = build_llm(Settings(**base, openai_enabled=False))
+    assert [c.provider for c in off.clients] == ["groq"]
+
+
 def test_build_llm_without_keys_is_none():
     settings = Settings(_env_file=None, groq_api_key=None, gemini_api_key=None, openai_api_key=None)
     assert build_llm(settings) is None

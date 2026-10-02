@@ -210,6 +210,23 @@ describe('LLM recommendation label', () => {
     )
   })
 
+  it('says the LLM agrees when it also recommends decline', async () => {
+    const agreeing: DecisionLogEntry = {
+      ...declined,
+      risk_memo: {
+        ...declined.risk_memo,
+        recommendation: { action: 'decline', confidence: 0.96, rationale: 'Roof is old.' },
+      },
+    }
+    vi.spyOn(api, 'getSubmission').mockResolvedValue(status('declined'))
+    vi.spyOn(api, 'getDecision').mockResolvedValue(agreeing)
+    vi.spyOn(api, 'getHistory').mockResolvedValue([agreeing])
+    const { app } = await mountAt('/submissions/SUB-HS', UMA)
+    const text = app.find('.recommendation').text()
+    expect(text).toContain('Agrees with the rules: hard-stop rule HS-001 declined this.')
+    expect(text).not.toContain('Not applied')
+  })
+
   it('adds nothing when the decision matches, and viewers get no review panel', async () => {
     const matching: DecisionLogEntry = {
       ...declined,

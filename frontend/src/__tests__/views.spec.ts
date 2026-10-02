@@ -131,6 +131,38 @@ describe('SubmissionView', () => {
     expect(text).toContain('2026-09-phase5')
   })
 
+  it('shows the JSON the LLM received next to the memo, and hides it for rules-only memos', async () => {
+    const status = {
+      submission_id: 'SUB-ABC',
+      status: 'referred' as const,
+      created_at: '2026-09-29T10:00:00',
+      updated_at: '2026-09-29T10:00:01',
+    }
+    const withData: DecisionLogEntry = {
+      ...ENTRY,
+      inputs: {
+        submission: { has_pool: true, coastal_distance_miles: null },
+        enrichment: [{ source: 'hazard_mock', data: { composite_score: 35 }, retrieved_at: 'x' }],
+      },
+    }
+    vi.spyOn(api, 'getSubmission').mockResolvedValue(status)
+    vi.spyOn(api, 'getDecision').mockResolvedValue(withData)
+    const { app } = await mountAt('/submissions/SUB-ABC')
+    const json = JSON.parse(app.find('pre.json').text())
+    expect(json.today).toBe('2026-09-29')
+    expect(json.submission.coastal_distance_miles).toBeNull()
+    expect(json.enrichment.hazard_mock.composite_score).toBe(35)
+    expect(json.rule_flags_already_raised.map((f: { rule_id: string }) => f.rule_id)).toEqual(['SR-010'])
+
+    const rulesOnly: DecisionLogEntry = {
+      ...withData,
+      risk_memo: { ...withData.risk_memo, assessed_by: 'rules', recommendation: null },
+    }
+    vi.spyOn(api, 'getDecision').mockResolvedValue(rulesOnly)
+    const again = await mountAt('/submissions/SUB-ABC')
+    expect(again.app.find('pre.json').exists()).toBe(false)
+  })
+
   it('explains a submission with no decision', async () => {
     vi.spyOn(api, 'getSubmission').mockResolvedValue({
       submission_id: 'SUB-INC',
