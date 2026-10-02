@@ -37,6 +37,45 @@ async def test_valid_llm_flag_is_accepted_with_catalog_severity():
     assert decision.action == "refer_to_underwriter"
 
 
+async def test_flag_citing_a_null_field_is_rejected():
+    flag = {
+        "rule_id": "UW-104",
+        "issue": "0 miles from the coast",
+        "source_field": "submission.coastal_distance_miles",
+    }
+    memo, decision = await review(
+        FakeLLM(risk_review("approve", 0.95, [flag])), coastal_distance_miles=None
+    )
+    assert all(f.origin == "rule" for f in memo.flags)
+    assert len(memo.rejected_flags) == 1 and "has no value" in memo.rejected_flags[0]
+    assert decision.action == "auto_approve"
+
+
+async def test_coast_flag_must_cite_the_distance_not_the_address():
+    # With no distance given, the model guessed from the city and cited the address instead.
+    flag = {
+        "rule_id": "UW-104",
+        "issue": "Newport Beach, likely within 1 mile of the coast",
+        "source_field": "submission.property_address",
+    }
+    memo, decision = await review(
+        FakeLLM(risk_review("approve", 0.95, [flag])), coastal_distance_miles=None
+    )
+    assert all(f.origin == "rule" for f in memo.flags)
+    assert len(memo.rejected_flags) == 1 and "must cite" in memo.rejected_flags[0]
+    assert decision.action == "auto_approve"
+
+
+async def test_summary_counts_llm_flags_too():
+    flag = {
+        "rule_id": "UW-105",
+        "issue": "Roof 2001, house 2010",
+        "source_field": "submission.roof_year",
+    }
+    memo, _ = await review(FakeLLM(risk_review("refer", 0.8, [flag])))
+    assert "0 hard-stop and 1 caution flag(s) found" in memo.narrative
+
+
 @pytest.mark.parametrize(
     ("flag", "reason"),
     [

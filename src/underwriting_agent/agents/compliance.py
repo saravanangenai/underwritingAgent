@@ -5,6 +5,8 @@ chain), which keeps this testable. The record carries everything needed to repla
 decision: the inputs the agents saw, the prompt versions and the LLM's raw risk reply.
 """
 
+from typing import Any
+
 from underwriting_agent import rules
 from underwriting_agent.agents.intake import ACORD_PROMPT_VERSION
 from underwriting_agent.agents.risk_assessment import RISK_PROMPT_VERSION
@@ -24,6 +26,7 @@ async def compliance_agent(
     decision: TriageDecision,
     intake_model: str | None = None,
     enrichment: list[EnrichmentResult] | None = None,
+    intake_evidence: dict[str, Any] | None = None,
 ) -> DecisionLogEntry:
     # Record every model that touched the decision, so the audit trail can be reproduced.
     risk_model = rules.MODEL_VERSION if memo.assessed_by == "rules" else memo.assessed_by
@@ -38,6 +41,13 @@ async def compliance_agent(
     if memo.assessed_by != "rules":
         prompt_versions["risk_review"] = RISK_PROMPT_VERSION
 
+    inputs: dict[str, Any] = {
+        "submission": submission.model_dump(mode="json"),
+        "enrichment": [r.model_dump(mode="json") for r in enrichment or []],
+    }
+    if intake_evidence:  # only when the LLM read ACORD text
+        inputs["intake"] = {"evidence": intake_evidence}
+
     return DecisionLogEntry(
         submission_id=submission.submission_id,
         decision=decision,
@@ -45,10 +55,7 @@ async def compliance_agent(
         model_version=model_version,
         rules_version=rules.RULES_VERSION,
         created_at=utcnow(),
-        inputs={
-            "submission": submission.model_dump(mode="json"),
-            "enrichment": [r.model_dump(mode="json") for r in enrichment or []],
-        },
+        inputs=inputs,
         prompt_versions=prompt_versions,
         llm_review_raw=memo.raw_review,
     )

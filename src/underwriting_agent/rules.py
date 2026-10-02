@@ -26,15 +26,27 @@ COVERAGE_A_PLAUSIBLE_MAX = 5_000_000
 
 # The LLM may approve only when no rule fired and it is at least this confident.
 LLM_APPROVE_MIN_CONFIDENCE = 0.7
+# Intake: a value read from ACORD text with less confidence than this is dropped, so a required
+# field falls back to "needs more info" and an optional one stays unknown.
+INTAKE_MIN_CONFIDENCE = 0.6
 
 Severity = Literal["info", "caution", "hard_stop"]
 
 
 class Rule:
-    def __init__(self, severity: Severity, description: str, llm_may_raise: bool = False):
+    def __init__(
+        self,
+        severity: Severity,
+        description: str,
+        llm_may_raise: bool = False,
+        cites: tuple[str, ...] | None = None,
+    ):
         self.severity = severity
         self.description = description
         self.llm_may_raise = llm_may_raise
+        # When set, an LLM flag for this rule must cite one of these fields. This stops the
+        # model raising it from a guess (for example the city) when the real field is empty.
+        self.cites = cites
 
 
 # Every rule id a flag may cite. Deterministic rules are evaluated in code; judgment rules
@@ -59,6 +71,7 @@ CATALOG: dict[str, Rule] = {
         "caution",
         "Requested effective date is in the past or more than 12 months away",
         llm_may_raise=True,
+        cites=("submission.requested_effective_date",),
     ),
     "UW-103": Rule(
         "caution",
@@ -66,7 +79,13 @@ CATALOG: dict[str, Rule] = {
         "the HZ-001 cutoff",
         llm_may_raise=True,
     ),
-    "UW-104": Rule("caution", "Property is within 1 mile of the coast", llm_may_raise=True),
+    "UW-104": Rule(
+        "caution",
+        "coastal_distance_miles is given and is 1 mile or less. Do not guess from the city or "
+        "address when it is missing",
+        llm_may_raise=True,
+        cites=("submission.coastal_distance_miles",),
+    ),
     "UW-105": Rule(
         "caution",
         "Submission data is internally inconsistent (for example the roof is older than the "

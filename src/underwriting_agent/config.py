@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     groq_api_key: SecretStr | None = None
     gemini_api_key: SecretStr | None = None
     openai_api_key: SecretStr | None = None
+    # Switch OpenAI off without removing its key or editing LLM_PROVIDERS.
+    openai_enabled: bool = True
     groq_model: str = "openai/gpt-oss-120b"
     gemini_model: str = "gemini-flash-latest"
     openai_model: str = "gpt-5.4-mini"

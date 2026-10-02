@@ -38,6 +38,33 @@ ACORD_EXTRACTION: dict[str, Any] = {
 }
 
 
+# The same extraction with the evidence a careful model gives: a verbatim quote per value.
+ACORD_EXTRACTION_WITH_EVIDENCE: dict[str, Any] = {
+    **ACORD_EXTRACTION,
+    "evidence": {
+        "property.address_line1": {"quote": "415 Harbor View Ln", "confidence": 0.98},
+        "property.city": {"quote": "San Clemente", "confidence": 0.98},
+        "property.state": {"quote": "CA", "confidence": 0.98},
+        "property.zip": {"quote": "92672", "confidence": 0.98},
+        "property.year_built": {"quote": "YEAR BUILT 2008", "confidence": 0.97},
+        "property.roof_year": {"quote": "Tile, replaced 2019", "confidence": 0.9},
+        "property.has_pool": {"quote": "SWIMMING POOL: Y", "confidence": 0.95},
+        "property.has_trampoline": {"quote": "TRAMPOLINE: N", "confidence": 0.95},
+        "prior_insurance.carrier": {"quote": "PRIOR CARRIER: Example Mutual", "confidence": 0.95},
+        "property.coastal_distance_miles": {
+            "quote": "DISTANCE TO COAST: 3.5 miles",
+            "confidence": 0.95,
+        },
+        "coverage.coverage_a_limit": {"quote": "A - DWELLING $720,000", "confidence": 0.96},
+        "coverage.requested_effective_date": {
+            "quote": "PROPOSED EFFECTIVE DATE: 12/01/2026",
+            "confidence": 0.95,
+        },
+        "prior_insurance.claims_last_5_years": {"quote": "None reported", "confidence": 0.9},
+    },
+}
+
+
 class FakeLLM:
     """Returns a canned reply (or raises) and records the prompts it was given."""
 

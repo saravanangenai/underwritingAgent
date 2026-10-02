@@ -429,6 +429,14 @@ h2 {
   margin: 6px 0 0;
 }
 
+.json {
+  margin: 0;
+  max-height: 460px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .rejected {
   margin-top: 12px;
   font-size: 0.875rem;

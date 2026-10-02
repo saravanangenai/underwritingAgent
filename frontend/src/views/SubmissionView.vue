@@ -7,6 +7,7 @@ import { hasRole } from '../auth'
 import FlagTable from '../components/FlagTable.vue'
 import HazardCard from '../components/HazardCard.vue'
 import HistoryTimeline from '../components/HistoryTimeline.vue'
+import IntakeEvidence from '../components/IntakeEvidence.vue'
 import ReviewPanel from '../components/ReviewPanel.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import {
@@ -72,7 +73,9 @@ const recommendationNote = computed(() => {
   if (RECOMMENDATION_ACTION[rec.action] === action) return null
   const hardStops = (memo.value?.flags ?? []).filter((f) => f.severity === 'hard_stop')
   if (action === 'auto_decline' && hardStops.length) {
-    return `Not applied: hard-stop rule ${hardStops.map((f) => f.rule_id).join(', ')} declined this automatically.`
+    const rules = hardStops.map((f) => f.rule_id).join(', ')
+    if (rec.action === 'decline') return `Agrees with the rules: hard-stop rule ${rules} declined this.`
+    return `Not applied: hard-stop rule ${rules} declined this automatically.`
   }
   if (rec.action === 'decline') return 'Not applied: only hard-stop rules decline; referred instead.'
   return 'Not applied: the rules and guardrails decided this outcome (see the decision above).'
@@ -81,7 +84,29 @@ const recommendationNote = computed(() => {
 const submission = computed(() => entry.value?.inputs.submission ?? {})
 const memo = computed(() => entry.value?.risk_memo)
 const decision = computed(() => entry.value?.decision)
+const intakeEvidence = computed(() => {
+  const evidence = entry.value?.inputs.intake?.evidence
+  return evidence && Object.keys(evidence).length ? evidence : null
+})
 const llmReviewed = computed(() => memo.value && memo.value.assessed_by !== 'rules')
+
+// The JSON the risk review received: the submission, each enrichment source's data, and the
+// rule flags that had already run. `today` is the day the decision was logged.
+const llmInput = computed(() => {
+  if (!llmReviewed.value || !entry.value || !memo.value) return null
+  const enrichment: Record<string, unknown> = {}
+  for (const r of entry.value.inputs.enrichment ?? []) enrichment[r.source] = r.data
+  return JSON.stringify(
+    {
+      today: entry.value.created_at.slice(0, 10),
+      submission: submission.value,
+      enrichment,
+      rule_flags_already_raised: memo.value.flags.filter((f) => f.origin === 'rule'),
+    },
+    null,
+    2,
+  )
+})
 
 const facts = computed(() => {
   const s = submission.value as Record<string, unknown>
@@ -163,6 +188,14 @@ const facts = computed(() => {
         </section>
       </div>
 
+      <section v-if="intakeEvidence" class="card">
+        <header class="card__header">
+          <h2>How the application was read</h2>
+          <span class="muted small">Each value is backed by a quote that must appear in the text</span>
+        </header>
+        <IntakeEvidence :evidence="intakeEvidence" />
+      </section>
+
       <section class="card">
         <header class="card__header">
           <h2>Risk flags</h2>
@@ -193,6 +226,14 @@ const facts = computed(() => {
               Guardrails: the LLM can make a decision more cautious, never less. Only rules decline.
             </p>
           </div>
+        </section>
+
+        <section v-if="llmInput" class="card">
+          <header class="card__header">
+            <h2>Input sent to the LLM</h2>
+            <span class="muted small">Rebuilt from the audit record</span>
+          </header>
+          <pre class="json mono">{{ llmInput }}</pre>
         </section>
 
         <HazardCard :enrichment="entry.inputs.enrichment ?? []" />

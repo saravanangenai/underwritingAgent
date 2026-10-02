@@ -170,6 +170,8 @@ def build_provider(settings: Settings, provider: str) -> ProviderClient | None:
     """One provider's client, or None when it has no key. Used alone for fair comparisons."""
     if provider not in BASE_URLS:
         raise ValueError(f"Unknown LLM provider {provider!r}; use one of {sorted(BASE_URLS)}")
+    if provider == "openai" and not settings.openai_enabled:
+        return None
     key = getattr(settings, f"{provider}_api_key")
     if key is None or not key.get_secret_value():
         return None
@@ -178,10 +180,17 @@ def build_provider(settings: Settings, provider: str) -> ProviderClient | None:
 
 
 def build_llm(settings: Settings) -> FallbackLLM | None:
-    """A FallbackLLM over every provider in settings.llm_providers that has a key, or None."""
+    """A FallbackLLM over every provider in settings.llm_providers that has a key, or None.
+
+    The primary provider goes first: OpenAI when OPENAI_ENABLED is true, otherwise Groq.
+    """
+    # OPENAI_ENABLED picks the primary: OpenAI when true, Groq when false. The other providers
+    # in LLM_PROVIDERS stay behind it as fallbacks.
+    primary = "openai" if settings.openai_enabled else "groq"
+    providers = [primary] + [p for p in settings.llm_providers if p != primary]
     clients: list[LLM] = [
         client
-        for provider in settings.llm_providers
+        for provider in providers
         if (client := build_provider(settings, provider)) is not None
     ]
     return FallbackLLM(clients) if clients else None
