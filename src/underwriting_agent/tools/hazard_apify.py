@@ -21,12 +21,15 @@ from typing import Any
 
 import httpx
 import httpx2
+import structlog
 from mcp import Client
 from mcp.client.streamable_http import streamable_http_client
 
 from underwriting_agent.config import Settings
 from underwriting_agent.schemas import EnrichmentResult, Submission
 from underwriting_agent.utils import utcnow
+
+log = structlog.get_logger()
 
 SOURCE = "hazard_apify"
 
@@ -64,6 +67,7 @@ class CensusGeocoder:
     """US Census Bureau one-line address geocoder. Free and needs no key."""
 
     URL = "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress"
+    GEOGRAPHIES_URL = "https://geocoding.geo.census.gov/geocoder/geographies/coordinates"
 
     def __init__(self, timeout: float = 20.0, transport: httpx.AsyncBaseTransport | None = None):
         self._timeout = timeout
@@ -89,6 +93,24 @@ class CensusGeocoder:
             )
         coords = best["coordinates"]
         return GeoPoint(lat=coords["y"], lon=coords["x"], matched_address=best["matchedAddress"])
+
+    async def county_fips(self, point: GeoPoint) -> str | None:
+        """5-digit county FIPS for a point, or None. Best effort: used only for the fallback."""
+        params = {
+            "x": point.lon,
+            "y": point.lat,
+            "benchmark": "Public_AR_Current",
+            "vintage": "Current_Current",
+            "format": "json",
+        }
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout, transport=self._transport) as c:
+                response = await c.get(self.GEOGRAPHIES_URL, params=params)
+            response.raise_for_status()
+            fips = response.json()["result"]["geographies"]["Counties"][0]["GEOID"]
+        except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError):
+            return None
+        return fips if isinstance(fips, str) and len(fips) == 5 else None
 
 
 def _payload(result: Any) -> dict[str, Any]:
@@ -161,10 +183,8 @@ class ApifyHazardProvider:
             async with Client(streamable_http_client(self._url, http_client=http)) as client:
                 yield client
 
-    async def lookup(self, submission: Submission) -> EnrichmentResult:
-        point = await self._geocoder.locate(submission.property_address, submission.zip_code)
-        asset = {"lat": point.lat, "lon": point.lon, "label": submission.submission_id}
-        actor_input = {"assets": [asset], "resolution": self._resolution, "maxResults": 1}
+    async def _run_actor(self, actor_input: dict[str, Any]) -> tuple[dict[str, Any], Any]:
+        """One billed Actor run, then its first dataset row. Returns (run, row)."""
         try:
             async with asyncio.timeout(self._timeout), self._connect() as client:
                 run = _payload(await client.call_tool(self._tool, actor_input))
@@ -182,8 +202,27 @@ class ApifyHazardProvider:
             if isinstance(leaf, HazardLookupError):
                 raise leaf from None
             raise HazardLookupError(f"Apify MCP call failed: {type(leaf).__name__}") from exc
+        return run, rows[0] if isinstance(rows, list) and rows else None
 
-        row = rows[0] if isinstance(rows, list) and rows else None
+    async def lookup(self, submission: Submission) -> EnrichmentResult:
+        point = await self._geocoder.locate(submission.property_address, submission.zip_code)
+        asset = {"lat": point.lat, "lon": point.lon, "label": submission.submission_id}
+        run, row = await self._run_actor(
+            {"assets": [asset], "resolution": self._resolution, "maxResults": 1}
+        )
+        fallback = None
+        if isinstance(row, dict) and row.get("match_status") == "geocode_failed":
+            # The Actor geocodes lat/lon itself (through the FCC block API, which can be down).
+            # Our own Census lookup gives the county, which the Actor can score without it.
+            fips = await self._geocoder.county_fips(point)
+            if fips:
+                log.warning("hazard_county_fallback", submission_id=submission.submission_id)
+                asset = {"fips": fips, "label": submission.submission_id}
+                run, row = await self._run_actor(
+                    {"assets": [asset], "resolution": "county", "maxResults": 1}
+                )
+                fallback = "county_fips"
+
         if not isinstance(row, dict):
             raise HazardLookupError("Actor run returned no rows")
         if row.get("match_status") != "matched" or row.get("nri_lookup_status") != "ok":
@@ -210,6 +249,7 @@ class ApifyHazardProvider:
                 "geocoded_address": point.matched_address,
                 "apify_actor": self._actor,
                 "apify_run_id": run.get("runId"),
+                **({"fallback": fallback} if fallback else {}),
             },
             retrieved_at=utcnow(),
         )

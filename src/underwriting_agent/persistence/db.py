@@ -71,6 +71,36 @@ class DecisionLogRow(Base):
     entry_hash: Mapped[str] = mapped_column(String(64), unique=True)
 
 
+class HazardResultRow(Base):
+    """What the live (Apify) hazard lookup returned for a submission, one row per lookup.
+
+    Outside the hash chain: the same data is also in decision_log.inputs_json, this table
+    makes it queryable.
+    """
+
+    __tablename__ = "hazard_results"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    submission_id: Mapped[str] = mapped_column(ForeignKey("submissions.id"), index=True)
+    source: Mapped[str] = mapped_column(String(50))
+    status: Mapped[str] = mapped_column(String(20))  # ok | unavailable
+    error: Mapped[str | None] = mapped_column(Text)
+    composite_score: Mapped[float | None]
+    tier: Mapped[str | None] = mapped_column(String(50))
+    expected_annual_loss_rating: Mapped[str | None] = mapped_column(String(50))
+    top_hazards_json: Mapped[str | None] = mapped_column(Text)
+    resolution: Mapped[str | None] = mapped_column(String(20))
+    tract_fips: Mapped[str | None] = mapped_column(String(20))
+    county: Mapped[str | None] = mapped_column(String(100))
+    state: Mapped[str | None] = mapped_column(String(10))
+    nri_version: Mapped[str | None] = mapped_column(String(20))
+    geocoded_address: Mapped[str | None] = mapped_column(String(255))
+    apify_actor: Mapped[str | None] = mapped_column(String(100))
+    apify_run_id: Mapped[str | None] = mapped_column(String(64))
+    data_json: Mapped[str] = mapped_column(Text)  # the full result.data as returned
+    retrieved_at: Mapped[datetime]
+
+
 def create_engine(database_url: str) -> AsyncEngine:
     return create_async_engine(database_url)
 

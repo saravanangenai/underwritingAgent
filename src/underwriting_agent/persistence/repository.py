@@ -7,10 +7,11 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from underwriting_agent.persistence.db import DecisionLogRow, SubmissionRow
+from underwriting_agent.persistence.db import DecisionLogRow, HazardResultRow, SubmissionRow
 from underwriting_agent.schemas import (
     AuditVerification,
     DecisionLogEntry,
+    EnrichmentResult,
     RiskMemo,
     SubmissionPage,
     SubmissionSummary,
@@ -201,6 +202,37 @@ async def save_decision(session: AsyncSession, entry: DecisionLogEntry) -> Decis
         )
         await session.commit()
     return stored.model_copy(update={"prev_hash": prev, "entry_hash": digest})
+
+
+async def save_hazard_result(
+    session: AsyncSession, submission_id: str, result: EnrichmentResult
+) -> None:
+    """Store one Apify hazard lookup result (including an "unavailable" one) for querying."""
+    d = result.data
+    top = d.get("top_hazards")
+    session.add(
+        HazardResultRow(
+            submission_id=submission_id,
+            source=result.source,
+            status=d.get("status", "ok"),
+            error=d.get("error"),
+            composite_score=d.get("composite_score"),
+            tier=d.get("tier"),
+            expected_annual_loss_rating=d.get("expected_annual_loss_rating"),
+            top_hazards_json=json.dumps(top) if top is not None else None,
+            resolution=d.get("resolution"),
+            tract_fips=d.get("tract_fips"),
+            county=d.get("county"),
+            state=d.get("state"),
+            nri_version=d.get("nri_version"),
+            geocoded_address=d.get("geocoded_address"),
+            apify_actor=d.get("apify_actor"),
+            apify_run_id=d.get("apify_run_id"),
+            data_json=json.dumps(d),
+            retrieved_at=result.retrieved_at,
+        )
+    )
+    await session.commit()
 
 
 async def get_decision(session: AsyncSession, submission_id: str) -> DecisionLogEntry | None:
