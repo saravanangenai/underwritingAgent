@@ -52,6 +52,31 @@ async def test_lookup_sends_geocoded_point_then_reads_the_run_dataset():
     assert "risk_score" in items_args["fields"]
 
 
+GEOCODE_FAILED = {**NRI_ROW, "match_status": "geocode_failed", "risk_score": None}
+COUNTY_ROW = {**NRI_ROW, "resolution_used": "county", "tract_fips": None}
+
+
+async def test_actor_geocode_failure_falls_back_to_county_fips():
+    server, calls = fake_apify_server(rows_per_run=[[GEOCODE_FAILED], [COUNTY_ROW]])
+    transport = census_transport(county_fips="06059")
+    result = await provider_for(server, transport).lookup(make_submission())
+
+    assert result.data["status"] == "ok"
+    assert result.data["resolution"] == "county"
+    assert result.data["fallback"] == "county_fips"
+    first, _, second, _ = calls
+    assert first[1]["assets"][0].keys() >= {"lat", "lon"}
+    assert second[1]["assets"] == [{"fips": "06059", "label": "SUB-T"}]
+    assert second[1]["resolution"] == "county"
+
+
+async def test_actor_geocode_failure_without_a_county_still_raises():
+    server, calls = fake_apify_server(rows=[GEOCODE_FAILED])
+    with pytest.raises(HazardLookupError, match="geocode_failed"):
+        await provider_for(server).lookup(make_submission())  # county endpoint answers 500
+    assert len(calls) == 2  # one run, no retry
+
+
 async def test_geocoder_sends_the_one_line_address():
     seen = {}
 

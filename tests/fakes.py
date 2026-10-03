@@ -98,7 +98,9 @@ NRI_ROW: dict[str, Any] = {
 
 
 def fake_apify_server(
-    rows: list[dict[str, Any]] | None = None, run_status: str = "SUCCEEDED"
+    rows: list[dict[str, Any]] | None = None,
+    run_status: str = "SUCCEEDED",
+    rows_per_run: list[list[dict[str, Any]]] | None = None,
 ) -> tuple[MCPServer, list[tuple[str, dict[str, Any]]]]:
     """An in-process MCP server shaped like Apify's, plus the list of calls it received."""
     server = MCPServer("fake-apify")
@@ -118,15 +120,27 @@ def fake_apify_server(
     @server.tool(name="get-dataset-items", structured_output=True)
     def get_items(datasetId: str, limit: int = 20, fields: str = "") -> dict[str, Any]:
         calls.append(("get-dataset-items", {"datasetId": datasetId, "fields": fields}))
+        if rows_per_run:  # a different dataset for each run, in order
+            return {"items": rows_per_run.pop(0)}
         return {"items": [NRI_ROW] if rows is None else rows}
 
     return server, calls
 
 
-def census_transport(zip_code: str = "92618", matches: bool = True) -> httpx.MockTransport:
-    """A Census geocoder that answers every address with one match in `zip_code`."""
+def census_transport(
+    zip_code: str = "92618", matches: bool = True, county_fips: str | None = None
+) -> httpx.MockTransport:
+    """A Census geocoder that answers every address with one match in `zip_code`.
+
+    With `county_fips`, the coordinates-to-geographies endpoint answers with that county.
+    """
 
     def handler(request: httpx.Request) -> httpx.Response:
+        if "geographies" in request.url.path:
+            if county_fips is None:
+                return httpx.Response(500)
+            body = {"result": {"geographies": {"Counties": [{"GEOID": county_fips}]}}}
+            return httpx.Response(200, json=body)
         found = [
             {
                 "matchedAddress": "1 TEST ST, IRVINE, CA, " + zip_code,

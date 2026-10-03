@@ -23,6 +23,7 @@ from underwriting_agent.schemas import (
     SubmissionStatus,
     UnderwriteResponse,
 )
+from underwriting_agent.tools import hazard_apify
 from underwriting_agent.utils import utcnow
 
 log = structlog.get_logger()
@@ -95,6 +96,9 @@ async def underwrite(
 
     result.log_entry.inputs["submitted_by"] = user.username
     await repo.save_decision(session, result.log_entry)
+    for item in result.enrichment:
+        if item.source == hazard_apify.SOURCE:
+            await repo.save_hazard_result(session, submission_id, item)
     await repo.set_status(session, submission_id, result.status)
     return UnderwriteResponse(
         submission_id=submission_id,

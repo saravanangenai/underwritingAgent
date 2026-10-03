@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { api, ApiError } from '../api'
@@ -41,6 +41,15 @@ const form = reactive({
   requested_effective_date: inDays(30),
   carrier: '',
   claims_last_5_years: 0 as number | '',
+})
+
+/** Coverage A shows as 800,000 while typing; the form keeps the plain number. */
+const coverageDisplay = computed({
+  get: () => (form.coverage_a_limit === '' ? '' : form.coverage_a_limit.toLocaleString('en-US')),
+  set: (text: string) => {
+    const digits = text.replace(/\D/g, '')
+    form.coverage_a_limit = digits === '' ? '' : Number(digits)
+  },
 })
 
 const submitting = ref(false)
@@ -140,7 +149,8 @@ async function submit() {
         <legend>Coverage and history</legend>
         <div class="fields">
           <label class="field">Coverage A limit ($)
-            <input v-model.number="form.coverage_a_limit" type="number" min="1" step="any" />
+            <input v-model="coverageDisplay" type="text" inputmode="numeric" autocomplete="off"
+              pattern="[0-9,]*" placeholder="800,000" />
           </label>
           <label class="field">Effective date <input v-model="form.requested_effective_date" type="date" /></label>
           <label class="field">Prior carrier <input v-model="form.carrier" /></label>
@@ -173,8 +183,9 @@ async function submit() {
     <p v-if="error" class="notice notice--bad" role="alert">{{ error }}</p>
 
     <div class="actions">
-      <button type="submit" class="button button--primary"
+      <button type="submit" class="button button--primary" :aria-busy="submitting"
         :disabled="submitting || (mode === 'acord' && !acordText.trim())">
+        <span v-if="submitting" class="spinner" aria-hidden="true"></span>
         {{ submitting ? 'Underwriting…' : 'Underwrite' }}
       </button>
     </div>
