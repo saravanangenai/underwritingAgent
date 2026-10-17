@@ -132,6 +132,8 @@ else
 fi
 install -d -m 755 -o caddy -g caddy /var/log/caddy
 caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile.new >/dev/null
+# validate runs as root and creates the access log; the caddy service must own it.
+chown -R caddy:caddy /var/log/caddy
 mv /etc/caddy/Caddyfile.new /etc/caddy/Caddyfile
 install -d -m 755 /etc/systemd/system/caddy.service.d
 install -m 644 "$RELEASE/deploy/systemd/caddy-memory.conf" /etc/systemd/system/caddy.service.d/memory.conf
