@@ -38,11 +38,11 @@ def create_app(
         title="Homeowners Underwriting Agent",
         version="0.10.0",
         description=(
-            "Phase 5: hash-chained, replayable audit log. Rules plus an LLM risk review with "
-            "cited flags and guardrailed triage. "
-            "LangGraph pipeline with parallel enrichment, live FEMA National Risk Index hazard "
-            "data through the Apify MCP server, and LLM intake of raw ACORD text. Loss history "
-            "and property data are mocked."
+            "Homeowners underwriting: a LangGraph pipeline with parallel enrichment, live FEMA "
+            "National Risk Index hazard data through the Apify MCP server, and LLM intake of raw "
+            "ACORD text. Rules plus an LLM risk review with cited flags and guardrailed triage, "
+            "underwriter review of referrals, role-based sign-in and a hash-chained, replayable "
+            "audit log. Loss history, property data and the premium are mocked."
         ),
         lifespan=lifespan,
     )
